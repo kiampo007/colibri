@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#e11d48">
+  <title>Colibrí Boba Tea</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- SPLASH SCREEN -->
+  <div id="splash" class="splash">
+    <div class="splash-particles" id="splashParticles"></div>
+    <div class="splash-content">
+      <div class="splash-logo-wrap">
+        <img id="splashLogoImg" src="" alt="Colibrí Boba Tea" class="splash-logo-img hidden">
+        <div class="splash-logo-fallback" id="splashLogoFallback">🐦</div>
+      </div>
+      <h1 class="splash-title">Colibrí Boba Tea</h1>
+      <p class="splash-sub">Bubble Tea & Refreshments</p>
+      <div class="splash-loader"><div class="splash-bar"></div></div>
+    </div>
+  </div>
+
+  <!-- APP CONTAINER -->
+  <div id="app" class="app hidden">
+    
+    <!-- HEADER -->
+    <header class="app-header" id="appHeader">
+      <button class="btn-icon menu-toggle ripple" onclick="toggleMenu()">☰</button>
+      <div class="header-brand">
+        <img id="headerLogo" src="" alt="" class="header-logo hidden">
+        <span class="brand-icon" id="headerLogoFallback">🐦</span>
+        <span class="brand-text">Colibrí Boba Tea</span>
+      </div>
+      <div class="header-datetime" id="headerDatetime"></div>
+      <button class="btn-icon notif-btn ripple" onclick="showNotifs()">
+        🔔
+        <span class="notif-badge hidden" id="notifBadge">0</span>
+      </button>
+    </header>
+
+    <!-- PULL TO REFRESH -->
+    <div class="pull-refresh" id="pullRefresh">
+      <div class="pull-spinner">🔄</div>
+      <span>Suelta para actualizar</span>
+    </div>
+
+    <!-- BOTTOM NAV -->
+    <nav class="bottom-nav">
+      <button class="nav-btn active ripple" data-tab="ventas" onclick="switchTab('ventas')">
+        <span class="nav-icon">🧋</span>
+        <span class="nav-label">Vender</span>
+      </button>
+      <button class="nav-btn ripple" data-tab="productos" onclick="switchTab('productos')">
+        <span class="nav-icon">📦</span>
+        <span class="nav-label">Productos</span>
+      </button>
+      <button class="nav-btn ripple" data-tab="clientes" onclick="switchTab('clientes')">
+        <span class="nav-icon">👤</span>
+        <span class="nav-label">Clientes</span>
+      </button>
+      <button class="nav-btn ripple" data-tab="deudas" onclick="switchTab('deudas')">
+        <span class="nav-icon">💳</span>
+        <span class="nav-label">Deudas</span>
+      </button>
+      <button class="nav-btn ripple" data-tab="reportes" onclick="switchTab('reportes')">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">Reportes</span>
+      </button>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content" id="mainContent">
+
+      <!-- TAB: VENTAS -->
+      <section class="tab-panel active" id="tab-ventas">
+        <div class="search-sticky">
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="searchVenta" placeholder="Buscar bebida..." oninput="debouncedSearch(this.value, 'venta')">
+            <button class="clear-search hidden" onclick="clearSearch('venta')">✕</button>
+          </div>
+          <div class="category-chips" id="catChips">
+            <button class="chip active ripple" onclick="filterCat('all')">Todos</button>
+            <button class="chip ripple" onclick="filterCat('clasicos')">Clásicos</button>
+            <button class="chip ripple" onclick="filterCat('frutales')">Frutales</button>
+            <button class="chip ripple" onclick="filterCat('especiales')">Especiales</button>
+            <button class="chip ripple" onclick="filterCat('toppings')">Toppings</button>
+          </div>
+        </div>
+        
+        <div class="products-grid" id="productsGrid">
+          <div class="skeleton-grid" id="skeletonGrid">
+            <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-text"></div><div class="skeleton-text short"></div></div>
+            <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-text"></div><div class="skeleton-text short"></div></div>
+            <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-text"></div><div class="skeleton-text short"></div></div>
+            <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-text"></div><div class="skeleton-text short"></div></div>
+          </div>
+        </div>
+        
+        <button class="fab-cart ripple" id="fabCart" onclick="openCart()">
+          🧋
+          <span class="fab-count" id="fabCount">0</span>
+        </button>
+      </section>
+
+      <!-- TAB: PRODUCTOS -->
+      <section class="tab-panel" id="tab-productos">
+        <div class="section-header">
+          <h2>Inventario</h2>
+          <button class="btn-primary ripple" onclick="openModal('producto')">+ Nuevo</button>
+        </div>
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="searchProd" placeholder="Buscar en inventario..." oninput="debouncedSearch(this.value, 'prod')">
+        </div>
+        <div class="list-container" id="inventoryList"></div>
+      </section>
+
+      <!-- TAB: CLIENTES -->
+      <section class="tab-panel" id="tab-clientes">
+        <div class="section-header">
+          <h2>Clientes</h2>
+          <button class="btn-primary ripple" onclick="openModal('cliente')">+ Nuevo</button>
+        </div>
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="searchCliente" placeholder="Buscar cliente..." oninput="debouncedSearch(this.value, 'cliente')">
+        </div>
+        <div class="list-container" id="clientsList"></div>
+      </section>
+
+      <!-- TAB: DEUDAS -->
+      <section class="tab-panel" id="tab-deudas">
+        <div class="section-header">
+          <h2>Créditos & Deudas</h2>
+        </div>
+        <div class="debt-summary" id="debtSummary"></div>
+        <div class="list-container" id="debtsList"></div>
+      </section>
+
+      <!-- TAB: REPORTES -->
+      <section class="tab-panel" id="tab-reportes">
+        <div class="section-header">
+          <h2>Reportes</h2>
+        </div>
+        <div class="report-filters">
+          <button class="chip active ripple" onclick="setReportRange('hoy')">Hoy</button>
+          <button class="chip ripple" onclick="setReportRange('semana')">Semana</button>
+          <button class="chip ripple" onclick="setReportRange('mes')">Mes</button>
+        </div>
+        <div class="stats-grid" id="statsGrid"></div>
+        <div class="chart-container" id="chartContainer">
+          <canvas id="salesChart"></canvas>
+        </div>
+        <div class="report-ganancia" id="reportGanancia"></div>
+        <div class="list-container" id="reportList"></div>
+      </section>
+
+    </main>
+
+    <!-- BOTTOM SHEET MENU -->
+    <div class="bottom-sheet hidden" id="bottomSheet" onclick="closeBottomSheet(event)">
+      <div class="bottom-sheet-content">
+        <div class="bottom-sheet-handle"></div>
+        <div class="bottom-sheet-header">
+          <span>🐦 Colibrí Boba Tea</span>
+          <button class="btn-icon ripple" onclick="closeBottomSheet()">✕</button>
+        </div>
+        <div class="bottom-sheet-items">
+          <button class="bottom-sheet-item ripple" onclick="switchTab('ventas'); closeBottomSheet()">
+            <span class="bs-icon">🧋</span>
+            <span class="bs-label">Punto de Venta</span>
+          </button>
+          <button class="bottom-sheet-item ripple" onclick="switchTab('productos'); closeBottomSheet()">
+            <span class="bs-icon">📦</span>
+            <span class="bs-label">Inventario</span>
+          </button>
+          <button class="bottom-sheet-item ripple" onclick="switchTab('clientes'); closeBottomSheet()">
+            <span class="bs-icon">👤</span>
+            <span class="bs-label">Clientes</span>
+          </button>
+          <button class="bottom-sheet-item ripple" onclick="switchTab('deudas'); closeBottomSheet()">
+            <span class="bs-icon">💳</span>
+            <span class="bs-label">Créditos</span>
+          </button>
+          <button class="bottom-sheet-item ripple" onclick="switchTab('reportes'); closeBottomSheet()">
+            <span class="bs-icon">📊</span>
+            <span class="bs-label">Reportes</span>
+          </button>
+          <div class="bottom-sheet-divider"></div>
+          <button class="bottom-sheet-item ripple" onclick="exportExcel(); closeBottomSheet()">
+            <span class="bs-icon">📥</span>
+            <span class="bs-label">Exportar Excel</span>
+          </button>
+          <button class="bottom-sheet-item ripple" onclick="importExcel(); closeBottomSheet()">
+            <span class="bs-icon">📤</span>
+            <span class="bs-label">Importar Excel</span>
+          </button>
+          <div class="bottom-sheet-divider"></div>
+          <button class="bottom-sheet-item ripple" onclick="openLogoModal(); closeBottomSheet()">
+            <span class="bs-icon">🎨</span>
+            <span class="bs-label">Cambiar Logo</span>
+          </button>
+          <button class="bottom-sheet-item ripple" onclick="openAdminModal(); closeBottomSheet()">
+            <span class="bs-icon">⚙️</span>
+            <span class="bs-label">Configuración Admin</span>
+          </button>
+          <div class="bottom-sheet-divider"></div>
+          <button class="bottom-sheet-item danger ripple" onclick="resetAll(); closeBottomSheet()">
+            <span class="bs-icon">🗑️</span>
+            <span class="bs-label">Resetear Todo</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CART MODAL -->
+    <div class="modal hidden" id="cartModal">
+      <div class="modal-overlay" onclick="closeModal('cart')"></div>
+      <div class="modal-content cart-modal slide-up">
+        <div class="modal-header">
+          <h3>🧋 Carrito</h3>
+          <button class="btn-icon ripple" onclick="closeModal('cart')">✕</button>
+        </div>
+        <div class="cart-items" id="cartItems"></div>
+        <div class="cart-summary">
+          <div class="summary-row"><span>Subtotal</span><span id="cartSubtotal">$0</span></div>
+          <div class="summary-row"><span>Descuento</span><input type="number" id="descuentoInput" placeholder="0" onchange="applyDiscount()"></div>
+          <div class="summary-row total"><span>Total</span><span id="cartTotal">$0</span></div>
+        </div>
+        <div class="payment-section">
+          <label>💵 Efectivo</label>
+          <input type="number" id="pagoEfectivo" placeholder="0" oninput="calcVuelto()">
+          <label>📲 Transferencia</label>
+          <input type="number" id="pagoTransf" placeholder="0">
+          <label>💳 Tarjeta</label>
+          <input type="number" id="pagoTarjeta" placeholder="0">
+          <div class="vuelto-box" id="vueltoBox"><span>Vuelto:</span> <span id="vueltoAmount">$0</span></div>
+        </div>
+        <div class="fiado-section" id="fiadoSection">
+          <label class="fiado-toggle">
+            <input type="checkbox" id="fiadoCheck" onchange="toggleFiado()">
+            <span class="fiado-label">🤝 Vender a Fiado / Crédito</span>
+          </label>
+          <div class="fiado-options hidden" id="fiadoOptions">
+            <label>Cliente</label>
+            <select id="fiadoCliente"><option value="">Seleccionar cliente...</option></select>
+            <label>Cuotas (1-12)</label>
+            <input type="number" id="fiadoCuotas" min="1" max="12" value="1" onchange="calcFiado()">
+            <div class="fiado-preview" id="fiadoPreview"></div>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-secondary ripple" onclick="closeModal('cart')">Seguir comprando</button>
+          <button class="btn-primary btn-large ripple" onclick="confirmSale()">✓ Finalizar Venta</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PRODUCT MODAL -->
+    <div class="modal hidden" id="productoModal">
+      <div class="modal-overlay" onclick="closeModal('producto')"></div>
+      <div class="modal-content slide-up">
+        <div class="modal-header">
+          <h3 id="prodModalTitle">Nuevo Producto</h3>
+          <button class="btn-icon ripple" onclick="closeModal('producto')">✕</button>
+        </div>
+        <form class="form-stacked" onsubmit="saveProduct(event)">
+          <input type="hidden" id="prodId">
+          <label>Nombre *</label>
+          <input type="text" id="prodNombre" required>
+          <label>Categoría</label>
+          <select id="prodCat">
+            <option value="clasicos">Clásicos</option>
+            <option value="frutales">Frutales</option>
+            <option value="especiales">Especiales</option>
+            <option value="toppings">Toppings</option>
+          </select>
+          <div class="costo-valor-row">
+            <div>
+              <label>Costo (tu inversión) *</label>
+              <input type="number" id="prodCosto" required min="0" oninput="calcMargen()">
+            </div>
+            <div>
+              <label>Precio Venta *</label>
+              <input type="number" id="prodPrecio" required min="0" oninput="calcMargen()">
+            </div>
+          </div>
+          <div class="margen-indicator" id="margenIndicator">
+            <span class="margen-badge" id="margenBadge">Ingresa costo y precio</span>
+            <span class="margen-porc" id="margenPorc"></span>
+          </div>
+          <label>Stock *</label>
+          <input type="number" id="prodStock" required min="0">
+          <label>Variante (opcional)</label>
+          <input type="text" id="prodVariante" placeholder="Ej: Grande, Mediano, Con leche...">
+          <label>Foto del producto</label>
+          <div class="foto-upload" id="fotoUploadBox" onclick="document.getElementById('prodFotoFile').click()">
+            <div class="foto-preview" id="fotoPreview">
+              <span class="foto-placeholder">📷 Toca para subir foto</span>
+            </div>
+            <input type="file" id="prodFotoFile" accept="image/*" style="display:none;" onchange="handleFotoUpload(this)">
+          </div>
+          <input type="hidden" id="prodFotoBase64">
+          <div class="modal-actions">
+            <button type="button" class="btn-secondary ripple" onclick="closeModal('producto')">Cancelar</button>
+            <button type="submit" class="btn-primary ripple">Guardar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- CLIENTE MODAL -->
+    <div class="modal hidden" id="clienteModal">
+      <div class="modal-overlay" onclick="closeModal('cliente')"></div>
+      <div class="modal-content slide-up">
+        <div class="modal-header">
+          <h3 id="cliModalTitle">Nuevo Cliente</h3>
+          <button class="btn-icon ripple" onclick="closeModal('cliente')">✕</button>
+        </div>
+        <form class="form-stacked" onsubmit="saveClient(event)">
+          <input type="hidden" id="cliId">
+          <label>Nombre *</label>
+          <input type="text" id="cliNombre" required>
+          <label>Teléfono</label>
+          <input type="tel" id="cliTel" placeholder="+56 9...">
+          <label>Email</label>
+          <input type="email" id="cliEmail" placeholder="opcional">
+          <label>Notas</label>
+          <textarea id="cliNotas" rows="2" placeholder="opcional"></textarea>
+          <div class="modal-actions">
+            <button type="button" class="btn-secondary ripple" onclick="closeModal('cliente')">Cancelar</button>
+            <button type="submit" class="btn-primary ripple">Guardar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- CUOTAS MODAL -->
+    <div class="modal hidden" id="cuotasModal">
+      <div class="modal-overlay" onclick="closeModal('cuotas')"></div>
+      <div class="modal-content slide-up">
+        <div class="modal-header">
+          <h3>💳 Gestión de Cuotas</h3>
+          <button class="btn-icon ripple" onclick="closeModal('cuotas')">✕</button>
+        </div>
+        <div id="cuotasContent"></div>
+      </div>
+    </div>
+
+    <!-- TICKET MODAL -->
+    <div class="modal hidden" id="ticketModal">
+      <div class="modal-overlay" onclick="closeModal('ticket')"></div>
+      <div class="modal-content ticket-modal slide-up">
+        <div class="ticket-print" id="ticketPrint"></div>
+        <div class="confetti-container" id="confettiContainer"></div>
+        <div class="modal-actions">
+          <button class="btn-secondary ripple" onclick="closeModal('ticket')">Cerrar</button>
+          <button class="btn-primary ripple" onclick="printTicket()">🖨️ Imprimir</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOGO MODAL -->
+    <div class="modal hidden" id="logoModal">
+      <div class="modal-overlay" onclick="closeModal('logo')"></div>
+      <div class="modal-content slide-up">
+        <div class="modal-header">
+          <h3>🎨 Logo de Colibrí Boba Tea</h3>
+          <button class="btn-icon ripple" onclick="closeModal('logo')">✕</button>
+        </div>
+        <div class="form-stacked">
+          <label>Sube tu logo</label>
+          <div class="foto-upload" onclick="document.getElementById('logoFile').click()">
+            <div class="foto-preview" id="logoPreview">
+              <span class="foto-placeholder">🎨 Toca para subir logo</span>
+            </div>
+            <input type="file" id="logoFile" accept="image/*" style="display:none;" onchange="handleLogoUpload(this)">
+          </div>
+          <input type="hidden" id="logoBase64">
+          <div class="modal-actions">
+            <button class="btn-secondary ripple" onclick="closeModal('logo')">Cancelar</button>
+            <button class="btn-primary ripple" onclick="saveLogo()">Guardar Logo</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADMIN CONFIG MODAL -->
+    <div class="modal hidden" id="adminModal">
+      <div class="modal-overlay" onclick="closeModal('admin')"></div>
+      <div class="modal-content slide-up">
+        <div class="modal-header">
+          <h3>⚙️ Configuración Administrativa</h3>
+          <button class="btn-icon ripple" onclick="closeModal('admin')">✕</button>
+        </div>
+        <div class="form-stacked">
+          <div class="admin-section">
+            <h4>🔒 Acceso</h4>
+            <label>Contraseña de administrador</label>
+            <input type="password" id="adminPass" placeholder="••••">
+            <button class="btn-primary ripple" onclick="saveAdminPass()" style="margin-top:8px;">Guardar contraseña</button>
+          </div>
+          <div class="admin-section">
+            <h4>📱 App</h4>
+            <label>Nombre del negocio</label>
+            <input type="text" id="adminBusinessName" value="Colibrí Boba Tea">
+            <label>Moneda</label>
+            <select id="adminCurrency">
+              <option value="$">Peso Chileno ($)</option>
+              <option value="USD$">Dólar (USD$)</option>
+              <option value="€">Euro (€)</option>
+            </select>
+          </div>
+          <div class="admin-section">
+            <h4>⚠️ Zona Peligrosa</h4>
+            <button class="btn-danger ripple" onclick="resetAll()" style="width:100%;">🗑️ Resetear Todos los Datos</button>
+          </div>
+          <div class="modal-actions">
+            <button class="btn-secondary ripple" onclick="closeModal('admin')">Cerrar</button>
+            <button class="btn-primary ripple" onclick="saveAdminConfig()">Guardar Cambios</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NOTIFICATIONS PANEL -->
+    <div class="notif-panel hidden" id="notifPanel">
+      <div class="notif-header">
+        <h4>🔔 Notificaciones</h4>
+        <button class="btn-icon ripple" onclick="closeNotifs()">✕</button>
+      </div>
+      <div class="notif-list" id="notifList"></div>
+    </div>
+
+    <!-- EXIT CONFIRM MODAL -->
+    <div class="modal hidden" id="exitModal">
+      <div class="modal-overlay" onclick="cancelExit()"></div>
+      <div class="modal-content slide-up" style="max-height: 50vh;">
+        <div class="modal-header">
+          <h3>👋 ¿Salir de Colibrí Boba Tea?</h3>
+        </div>
+        <p style="padding: 0 20px; color: var(--text-2); font-size: 14px;">
+          ¿Deseas guardar un backup de tus datos antes de salir?
+        </p>
+        <div class="modal-actions" style="padding: 20px;">
+          <button class="btn-secondary ripple" onclick="cancelExit()">Cancelar</button>
+          <button class="btn-primary ripple" onclick="exitWithBackup()">💾 Guardar y Salir</button>
+          <button class="btn-danger ripple" onclick="exitWithoutBackup()">Salir sin guardar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOAST -->
+    <div class="toast hidden" id="toast"></div>
+
+    <!-- CONFIRM DIALOG -->
+    <div class="confirm-overlay hidden" id="confirmOverlay">
+      <div class="confirm-box bounce-in">
+        <p id="confirmText">¿Estás seguro?</p>
+        <div class="confirm-actions">
+          <button class="btn-secondary ripple" onclick="cancelConfirm()">Cancelar</button>
+          <button class="btn-danger ripple" id="confirmBtn">Confirmar</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
