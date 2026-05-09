@@ -1,0 +1,21 @@
+{
+  "name": "Colibrí Boba Tea POS v2.0",
+  "short_name": "Colibrí POS",
+  "description": "Sistema POS profesional para Colibrí Boba Tea",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#1a1a2e",
+  "theme_color": "#00d4aa",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3081/3081840.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "finance", "food"],
+  "lang": "es",
+  "dir": "ltr"
+}
