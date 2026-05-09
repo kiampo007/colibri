@@ -6,14 +6,10 @@
     <meta name="theme-color" content="#00d4aa">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>🌸 Colibrí Boba Tea v2.0</title>
-
-    <!-- RUTAS RELATIVAS (sin / al inicio) para GitHub Pages -->
+    <title>🌸 Colibrí Boba Tea v3.0</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3081/3081840.png">
-
-    <!-- FIX para SPA routing en GitHub Pages -->
     <script type="text/javascript">
         (function(l) {
             if (l.search[1] === '/' ) {
@@ -33,10 +29,8 @@
         <div class="splash-content">
             <div class="colibri-logo">🌸</div>
             <h1>Colibrí Boba Tea</h1>
-            <p>v2.0 - Sistema POS Profesional</p>
-            <div class="loading-bar">
-                <div class="loading-progress"></div>
-            </div>
+            <p>v3.0 - Sistema POS Profesional</p>
+            <div class="loading-bar"><div class="loading-progress"></div></div>
         </div>
     </div>
 
@@ -68,12 +62,13 @@
                 <li data-module="inventario">📦 Inventario</li>
                 <li data-module="clientes">👥 Clientes</li>
                 <li data-module="deudas">💳 Deudas / Créditos</li>
+                <li data-module="bodega">📦 Bodega / Ingredientes</li>
                 <li data-module="catalogo">🌐 Catálogo Web</li>
                 <li data-module="config">⚙️ Configuración</li>
             </ul>
             <div class="sidebar-footer">
                 <p>© 2026 Colibrí Boba Tea</p>
-                <p class="version">v2.0 Professional</p>
+                <p class="version">v3.0 Pro + Bodega</p>
             </div>
         </nav>
         <div id="sidebar-overlay" class="sidebar-overlay"></div>
@@ -93,18 +88,9 @@
             <!-- MÓDULO VENTAS -->
             <section id="module-ventas" class="module">
                 <div class="stats-row">
-                    <div class="stat-card">
-                        <span class="stat-value" id="today-sales">$0</span>
-                        <span class="stat-label">Hoy</span>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-value" id="week-sales">$0</span>
-                        <span class="stat-label">Semana</span>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-value" id="month-sales">$0</span>
-                        <span class="stat-label">Mes</span>
-                    </div>
+                    <div class="stat-card"><span class="stat-value" id="today-sales">$0</span><span class="stat-label">Hoy</span></div>
+                    <div class="stat-card"><span class="stat-value" id="week-sales">$0</span><span class="stat-label">Semana</span></div>
+                    <div class="stat-card"><span class="stat-value" id="month-sales">$0</span><span class="stat-label">Mes</span></div>
                 </div>
                 <h3>📋 Historial de Ventas</h3>
                 <div id="sales-list" class="sales-list"></div>
@@ -131,17 +117,46 @@
             <!-- MÓDULO DEUDAS -->
             <section id="module-deudas" class="module">
                 <div class="stats-row">
-                    <div class="stat-card warning">
-                        <span class="stat-value" id="total-debt">$0</span>
-                        <span class="stat-label">Total Deudas</span>
-                    </div>
-                    <div class="stat-card success">
-                        <span class="stat-value" id="total-paid">$0</span>
-                        <span class="stat-label">Total Pagado</span>
-                    </div>
+                    <div class="stat-card warning"><span class="stat-value" id="total-debt">$0</span><span class="stat-label">Total Deudas</span></div>
+                    <div class="stat-card success"><span class="stat-value" id="total-paid">$0</span><span class="stat-label">Total Pagado</span></div>
                 </div>
                 <h3>📋 Historial de Deudas</h3>
                 <div id="debts-list" class="debts-list"></div>
+            </section>
+
+            <!-- 🆕 MÓDULO BODEGA / INGREDIENTES -->
+            <section id="module-bodega" class="module">
+                <div class="stats-row">
+                    <div class="stat-card">
+                        <span class="stat-value" id="bodega-total-value">$0</span>
+                        <span class="stat-label">Valor Bodega</span>
+                    </div>
+                    <div class="stat-card warning">
+                        <span class="stat-value" id="bodega-low-stock">0</span>
+                        <span class="stat-label">Stock Bajo</span>
+                    </div>
+                </div>
+
+                <div class="bodega-tabs">
+                    <button class="bodega-tab active" onclick="showBodegaTab('ingredients')">📦 Ingredientes</button>
+                    <button class="bodega-tab" onclick="showBodegaTab('recipes')">🧪 Recetas</button>
+                </div>
+
+                <div id="bodega-ingredients-tab" class="bodega-tab-content active">
+                    <div class="search-bar">
+                        <input type="text" id="ingredient-search" placeholder="🔍 Buscar ingrediente...">
+                        <button id="add-ingredient-btn" class="btn-primary">+ Ingrediente</button>
+                    </div>
+                    <div id="ingredients-list" class="ingredients-list"></div>
+                </div>
+
+                <div id="bodega-recipes-tab" class="bodega-tab-content">
+                    <div class="search-bar">
+                        <input type="text" id="recipe-search" placeholder="🔍 Buscar receta...">
+                        <button id="add-recipe-btn" class="btn-primary">+ Receta</button>
+                    </div>
+                    <div id="recipes-list" class="recipes-list"></div>
+                </div>
             </section>
 
             <!-- MÓDULO CATÁLOGO WEB -->
@@ -182,18 +197,10 @@
 
         <!-- FLOATING CART -->
         <div id="floating-cart" class="floating-cart">
-            <div class="cart-header">
-                <h3>🛒 Carrito</h3>
-                <button id="close-cart" class="close-btn">×</button>
-            </div>
-            <div id="cart-items" class="cart-items">
-                <p class="empty-cart">Carrito vacío</p>
-            </div>
+            <div class="cart-header"><h3>🛒 Carrito</h3><button id="close-cart" class="close-btn">×</button></div>
+            <div id="cart-items" class="cart-items"><p class="empty-cart">Carrito vacío</p></div>
             <div class="cart-footer">
-                <div class="cart-total">
-                    <span>Total:</span>
-                    <span id="cart-total-amount">$0</span>
-                </div>
+                <div class="cart-total"><span>Total:</span><span id="cart-total-amount">$0</span></div>
                 <div class="payment-methods">
                     <button id="pay-cash" class="payment-btn active">💵 Efectivo</button>
                     <button id="pay-card" class="payment-btn">💳 Tarjeta</button>
@@ -204,197 +211,87 @@
             </div>
         </div>
 
-        <!-- MODALES -->
+        <!-- MODALES EXISTENTES -->
         <div id="product-modal" class="modal">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h3 id="product-modal-title">Nuevo Producto</h3>
-                    <button class="close-modal">×</button>
-                </div>
+                <div class="modal-header"><h3 id="product-modal-title">Nuevo Producto</h3><button class="close-modal">×</button></div>
                 <div class="modal-body">
                     <input type="hidden" id="product-id">
-                    <div class="form-group">
-                        <label>Nombre del Producto *</label>
-                        <input type="text" id="product-name" placeholder="Ej: Bubble Tea de Taro">
-                    </div>
-                    <div class="form-group">
-                        <label>Precio de Venta *</label>
-                        <input type="number" id="product-price" placeholder="0" min="0">
-                    </div>
-                    <div class="form-group">
-                        <label>Costo (opcional)</label>
-                        <input type="number" id="product-cost" placeholder="0" min="0">
-                    </div>
-                    <div class="form-group">
-                        <label>Stock Inicial</label>
-                        <input type="number" id="product-stock" placeholder="0" min="0" value="0">
-                    </div>
-                    <div class="form-group">
-                        <label>Categoría</label>
-                        <select id="product-category">
-                            <option value="bubble-tea">🧋 Bubble Tea</option>
-                            <option value="smoothie">🥤 Smoothie</option>
-                            <option value="coffee">☕ Café</option>
-                            <option value="postre">🍰 Postre</option>
-                            <option value="otro">📦 Otro</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Imagen del Producto</label>
-                        <input type="file" id="product-image-file" accept="image/*">
-                        <small>O sube una URL:</small>
-                        <input type="text" id="product-image-url" placeholder="https://...">
-                        <div id="image-preview" class="image-preview"></div>
-                    </div>
-                    <button id="save-product-btn" class="btn-primary btn-full">💾 Guardar Producto</button>
+                    <div class="form-group"><label>Nombre *</label><input type="text" id="product-name" placeholder="Ej: Bubble Tea de Taro"></div>
+                    <div class="form-group"><label>Precio *</label><input type="number" id="product-price" placeholder="0" min="0"></div>
+                    <div class="form-group"><label>Costo</label><input type="number" id="product-cost" placeholder="0" min="0"></div>
+                    <div class="form-group"><label>Stock</label><input type="number" id="product-stock" value="0" min="0"></div>
+                    <div class="form-group"><label>Categoría</label><select id="product-category"><option value="bubble-tea">🧋 Bubble Tea</option><option value="smoothie">🥤 Smoothie</option><option value="coffee">☕ Café</option><option value="postre">🍰 Postre</option><option value="otro">📦 Otro</option></select></div>
+                    <div class="form-group"><label>Imagen</label><input type="file" id="product-image-file" accept="image/*"><small>O URL:</small><input type="text" id="product-image-url" placeholder="https://..."><div id="image-preview" class="image-preview"></div></div>
+                    <button id="save-product-btn" class="btn-primary btn-full">💾 Guardar</button>
                 </div>
             </div>
         </div>
 
         <div id="quick-sale-modal" class="modal">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h3>⚡ Venta Rápida</h3>
-                    <button class="close-modal">×</button>
-                </div>
+                <div class="modal-header"><h3>⚡ Venta Rápida</h3><button class="close-modal">×</button></div>
                 <div class="modal-body">
-                    <div class="form-group">
-                        <label>Producto</label>
-                        <input type="text" id="quick-sale-product" placeholder="Nombre del producto">
-                    </div>
-                    <div class="form-group">
-                        <label>Precio</label>
-                        <input type="number" id="quick-sale-price" placeholder="0">
-                    </div>
-                    <div class="form-group">
-                        <label>Cantidad</label>
-                        <input type="number" id="quick-sale-qty" value="1" min="1">
-                    </div>
-                    <div class="form-group">
-                        <label>Método de Pago</label>
-                        <select id="quick-sale-payment">
-                            <option value="efectivo">💵 Efectivo</option>
-                            <option value="tarjeta">💳 Tarjeta</option>
-                            <option value="transferencia">📱 Transferencia</option>
-                            <option value="fiado">📝 Fiado</option>
-                        </select>
-                    </div>
-                    <button id="save-quick-sale-btn" class="btn-primary btn-full">✅ Registrar Venta</button>
+                    <div class="form-group"><label>Producto</label><input type="text" id="quick-sale-product" placeholder="Nombre"></div>
+                    <div class="form-group"><label>Precio</label><input type="number" id="quick-sale-price" placeholder="0"></div>
+                    <div class="form-group"><label>Cantidad</label><input type="number" id="quick-sale-qty" value="1" min="1"></div>
+                    <div class="form-group"><label>Pago</label><select id="quick-sale-payment"><option value="efectivo">💵 Efectivo</option><option value="tarjeta">💳 Tarjeta</option><option value="transferencia">📱 Transferencia</option><option value="fiado">📝 Fiado</option></select></div>
+                    <button id="save-quick-sale-btn" class="btn-primary btn-full">✅ Registrar</button>
                 </div>
             </div>
         </div>
 
         <div id="client-modal" class="modal">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h3 id="client-modal-title">Nuevo Cliente</h3>
-                    <button class="close-modal">×</button>
-                </div>
+                <div class="modal-header"><h3 id="client-modal-title">Nuevo Cliente</h3><button class="close-modal">×</button></div>
                 <div class="modal-body">
                     <input type="hidden" id="client-id">
-                    <div class="form-group">
-                        <label>Nombre Completo *</label>
-                        <input type="text" id="client-name" placeholder="Nombre del cliente">
-                    </div>
-                    <div class="form-group">
-                        <label>Teléfono</label>
-                        <input type="tel" id="client-phone" placeholder="+56 9 1234 5678">
-                    </div>
-                    <div class="form-group">
-                        <label>Email</label>
-                        <input type="email" id="client-email" placeholder="cliente@email.com">
-                    </div>
-                    <div class="form-group">
-                        <label>Dirección</label>
-                        <input type="text" id="client-address" placeholder="Dirección del cliente">
-                    </div>
-                    <div class="form-group">
-                        <label>Notas</label>
-                        <textarea id="client-notes" placeholder="Notas adicionales..."></textarea>
-                    </div>
-                    <button id="save-client-btn" class="btn-primary btn-full">💾 Guardar Cliente</button>
+                    <div class="form-group"><label>Nombre *</label><input type="text" id="client-name" placeholder="Nombre"></div>
+                    <div class="form-group"><label>Teléfono</label><input type="tel" id="client-phone" placeholder="+56 9..."></div>
+                    <div class="form-group"><label>Email</label><input type="email" id="client-email" placeholder="email"></div>
+                    <div class="form-group"><label>Dirección</label><input type="text" id="client-address" placeholder="Dirección"></div>
+                    <div class="form-group"><label>Notas</label><textarea id="client-notes" placeholder="Notas..."></textarea></div>
+                    <button id="save-client-btn" class="btn-primary btn-full">💾 Guardar</button>
                 </div>
             </div>
         </div>
 
         <div id="debt-modal" class="modal">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h3 id="debt-modal-title">Registrar Deuda</h3>
-                    <button class="close-modal">×</button>
-                </div>
+                <div class="modal-header"><h3>Registrar Deuda</h3><button class="close-modal">×</button></div>
                 <div class="modal-body">
                     <input type="hidden" id="debt-id">
-                    <div class="form-group">
-                        <label>Cliente *</label>
-                        <select id="debt-client">
-                            <option value="">Seleccionar cliente...</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Monto Total *</label>
-                        <input type="number" id="debt-amount" placeholder="0">
-                    </div>
-                    <div class="form-group">
-                        <label>Cuotas (1-12)</label>
-                        <input type="number" id="debt-installments" value="1" min="1" max="12">
-                    </div>
-                    <div class="form-group">
-                        <label>Fecha de Vencimiento</label>
-                        <input type="date" id="debt-due-date">
-                    </div>
-                    <div class="form-group">
-                        <label>Descripción</label>
-                        <input type="text" id="debt-description" placeholder="Descripción de la deuda">
-                    </div>
+                    <div class="form-group"><label>Cliente *</label><select id="debt-client"><option value="">Seleccionar...</option></select></div>
+                    <div class="form-group"><label>Monto *</label><input type="number" id="debt-amount" placeholder="0"></div>
+                    <div class="form-group"><label>Cuotas (1-12)</label><input type="number" id="debt-installments" value="1" min="1" max="12"></div>
+                    <div class="form-group"><label>Vencimiento</label><input type="date" id="debt-due-date"></div>
+                    <div class="form-group"><label>Descripción</label><input type="text" id="debt-description" placeholder="Descripción"></div>
                     <div id="installment-preview" class="installment-preview"></div>
-                    <button id="save-debt-btn" class="btn-primary btn-full">💾 Guardar Deuda</button>
+                    <button id="save-debt-btn" class="btn-primary btn-full">💾 Guardar</button>
                 </div>
             </div>
         </div>
 
         <div id="payment-modal" class="modal">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h3>💵 Registrar Pago</h3>
-                    <button class="close-modal">×</button>
-                </div>
+                <div class="modal-header"><h3>💵 Registrar Pago</h3><button class="close-modal">×</button></div>
                 <div class="modal-body">
                     <input type="hidden" id="payment-debt-id">
-                    <div class="form-group">
-                        <label>Monto a Pagar</label>
-                        <input type="number" id="payment-amount" placeholder="0">
-                    </div>
-                    <div class="form-group">
-                        <label>Método de Pago</label>
-                        <select id="payment-method">
-                            <option value="efectivo">💵 Efectivo</option>
-                            <option value="tarjeta">💳 Tarjeta</option>
-                            <option value="transferencia">📱 Transferencia</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Nota (opcional)</label>
-                        <input type="text" id="payment-note" placeholder="Nota del pago">
-                    </div>
-                    <button id="save-payment-btn" class="btn-primary btn-full">✅ Confirmar Pago</button>
+                    <div class="form-group"><label>Monto</label><input type="number" id="payment-amount" placeholder="0"></div>
+                    <div class="form-group"><label>Método</label><select id="payment-method"><option value="efectivo">💵 Efectivo</option><option value="tarjeta">💳 Tarjeta</option><option value="transferencia">📱 Transferencia</option></select></div>
+                    <div class="form-group"><label>Nota</label><input type="text" id="payment-note" placeholder="Nota"></div>
+                    <button id="save-payment-btn" class="btn-primary btn-full">✅ Confirmar</button>
                 </div>
             </div>
         </div>
 
         <div id="calculator-modal" class="modal">
             <div class="modal-content calculator-modal">
-                <div class="modal-header">
-                    <h3>🧮 Calculadora de Vuelto</h3>
-                    <button class="close-modal">×</button>
-                </div>
+                <div class="modal-header"><h3>🧮 Calculadora</h3><button class="close-modal">×</button></div>
                 <div class="modal-body">
                     <div class="calc-display">
                         <div class="calc-total">Total: <span id="calc-total">$0</span></div>
-                        <div class="calc-received">
-                            <label>Recibido:</label>
-                            <input type="number" id="calc-received" placeholder="0">
-                        </div>
+                        <div class="calc-received"><label>Recibido:</label><input type="number" id="calc-received" placeholder="0"></div>
                         <div class="calc-change">Vuelto: <span id="calc-change">$0</span></div>
                     </div>
                     <div class="calc-buttons">
@@ -410,15 +307,55 @@
             </div>
         </div>
 
+        <!-- 🆕 MODAL INGREDIENTE -->
+        <div id="ingredient-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header"><h3 id="ingredient-modal-title">Nuevo Ingrediente</h3><button class="close-modal">×</button></div>
+                <div class="modal-body">
+                    <input type="hidden" id="ingredient-id">
+                    <div class="form-group"><label>Nombre *</label><input type="text" id="ingredient-name" placeholder="Ej: Perlas de Tapioca"></div>
+                    <div class="form-group"><label>Categoría</label><select id="ingredient-category">
+                        <option value="tapioca">⚫ Perlas/Tapioca</option>
+                        <option value="te">🍃 Té</option>
+                        <option value="lacteo">🥛 Lácteo</option>
+                        <option value="endulzante">🍯 Endulzante</option>
+                        <option value="saborizante">🧪 Saborizante</option>
+                        <option value="empaque">📦 Empaque</option>
+                        <option value="otro">🔧 Otro</option>
+                    </select></div>
+                    <div class="form-group"><label>Unidad *</label><input type="text" id="ingredient-unit" placeholder="kg, g, L, un..."></div>
+                    <div class="form-group"><label>Stock Actual</label><input type="number" id="ingredient-stock" value="0" min="0" step="0.01"></div>
+                    <div class="form-group"><label>Stock Mínimo (alerta)</label><input type="number" id="ingredient-min-stock" value="1" min="0" step="0.01"></div>
+                    <div class="form-group"><label>Costo por unidad</label><input type="number" id="ingredient-cost" placeholder="0" min="0"></div>
+                    <div class="form-group"><label>Proveedor</label><input type="text" id="ingredient-supplier" placeholder="Nombre proveedor"></div>
+                    <div class="form-group"><label>Ubicación en bodega</label><input type="text" id="ingredient-location" placeholder="Estante A1, Refrigerador..."></div>
+                    <button id="save-ingredient-btn" class="btn-primary btn-full">💾 Guardar Ingrediente</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 🆕 MODAL RECETA -->
+        <div id="recipe-modal" class="modal">
+            <div class="modal-content" style="max-height:90vh;">
+                <div class="modal-header"><h3>Crear Receta / Fórmula</h3><button class="close-modal">×</button></div>
+                <div class="modal-body">
+                    <input type="hidden" id="recipe-id">
+                    <div class="form-group"><label>Producto *</label><select id="recipe-product"><option value="">Seleccionar producto...</option></select></div>
+
+                    <h4 style="margin:16px 0 8px;font-size:15px;color:var(--primary);">🧪 Ingredientes:</h4>
+                    <div id="recipe-items-container"></div>
+                    <button id="recipe-add-item" class="btn-secondary" style="width:100%;margin:8px 0;">+ Agregar Ingrediente</button>
+
+                    <div id="recipe-preview" class="installment-preview" style="margin-top:16px;"></div>
+                    <button id="save-recipe-btn" class="btn-primary btn-full">💾 Guardar Receta</button>
+                </div>
+            </div>
+        </div>
+
         <div id="notifications-modal" class="modal">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h3>🔔 Notificaciones</h3>
-                    <button class="close-modal">×</button>
-                </div>
-                <div id="notifications-list" class="notifications-list">
-                    <p class="empty-notifications">No hay notificaciones</p>
-                </div>
+                <div class="modal-header"><h3>🔔 Notificaciones</h3><button class="close-modal">×</button></div>
+                <div id="notifications-list" class="notifications-list"><p class="empty-notifications">No hay notificaciones</p></div>
             </div>
         </div>
 
@@ -437,7 +374,16 @@
         <div id="toast-container" class="toast-container"></div>
     </div>
 
-    <!-- RUTA RELATIVA para app.js -->
     <script src="app.js"></script>
+    <script>
+        // 🆕 Función para tabs de bodega
+        function showBodegaTab(tab) {
+            document.querySelectorAll('.bodega-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.bodega-tab-content').forEach(c => c.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(`bodega-${tab}-tab`).classList.add('active');
+        }
+    </script>
 </body>
 </html>

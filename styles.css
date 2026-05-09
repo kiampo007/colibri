@@ -1369,3 +1369,127 @@ body {
         color: black;
     }
 }
+
+/* ============== BODEGA / INGREDIENTES ============== */
+.bodega-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    background: var(--glass);
+    padding: 6px;
+    border-radius: var(--radius);
+    border: 1px solid var(--glass-border);
+}
+
+.bodega-tab {
+    flex: 1;
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    background: transparent;
+    color: rgba(255,255,255,0.6);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.bodega-tab.active {
+    background: linear-gradient(135deg, rgba(0,212,170,0.3), rgba(0,212,170,0.1));
+    color: var(--primary);
+    border: 1px solid var(--primary);
+}
+
+.bodega-tab:hover:not(.active) {
+    background: rgba(255,255,255,0.1);
+    color: var(--light);
+}
+
+.bodega-tab-content {
+    display: none;
+}
+
+.bodega-tab-content.active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+
+/* ============== INGREDIENTES LIST ============== */
+.ingredients-list, .recipes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.ingredient-category {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ingredient-category.tapioca { background: rgba(0,0,0,0.3); color: #aaa; }
+.ingredient-category.te { background: rgba(0,212,170,0.2); color: var(--primary); }
+.ingredient-category.lacteo { background: rgba(255,255,255,0.15); color: #fff; }
+.ingredient-category.endulzante { background: rgba(255,217,61,0.2); color: var(--accent); }
+.ingredient-category.saborizante { background: rgba(255,107,157,0.2); color: var(--secondary); }
+.ingredient-category.empaque { background: rgba(100,149,237,0.2); color: #6495ed; }
+.ingredient-category.otro { background: rgba(128,128,128,0.2); color: #999; }
+
+/* ============== RECIPE ITEMS ============== */
+.recipe-item-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    padding: 10px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 10px;
+    animation: slideUp 0.3s ease;
+}
+
+.recipe-item-row select,
+.recipe-item-row input {
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    padding: 10px;
+    color: var(--light);
+    font-size: 14px;
+}
+
+.recipe-item-row select:focus,
+.recipe-item-row input:focus {
+    border-color: var(--primary);
+    outline: none;
+}
+
+/* ============== BODEGA STATS ============== */
+.bodega-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+/* ============== RESPONSIVE BODEGA ============== */
+@media (max-width: 360px) {
+    .bodega-tabs {
+        flex-direction: column;
+    }
+    .recipe-item-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .recipe-item-row select,
+    .recipe-item-row input {
+        width: 100% !important;
+    }
+}
