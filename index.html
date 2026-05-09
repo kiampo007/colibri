@@ -7,9 +7,25 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>🌸 Colibrí Boba Tea v2.0</title>
+
+    <!-- RUTAS RELATIVAS (sin / al inicio) para GitHub Pages -->
     <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3081/3081840.png">
+
+    <!-- FIX para SPA routing en GitHub Pages -->
+    <script type="text/javascript">
+        (function(l) {
+            if (l.search[1] === '/' ) {
+                var decoded = l.search.slice(1).split('&').map(function(s) {
+                    return s.replace(/~and~/g, '&')
+                }).join('?');
+                window.history.replaceState(null, null,
+                    l.pathname.slice(0, -1) + decoded + l.hash
+                );
+            }
+        }(window.location))
+    </script>
 </head>
 <body>
     <!-- SPLASH SCREEN -->
@@ -71,9 +87,7 @@
                     <input type="text" id="product-search" placeholder="🔍 Buscar producto...">
                     <button id="add-product-btn" class="btn-primary">+ Nuevo</button>
                 </div>
-                <div id="products-grid" class="products-grid">
-                    <!-- Productos se cargan dinámicamente -->
-                </div>
+                <div id="products-grid" class="products-grid"></div>
             </section>
 
             <!-- MÓDULO VENTAS -->
@@ -93,9 +107,7 @@
                     </div>
                 </div>
                 <h3>📋 Historial de Ventas</h3>
-                <div id="sales-list" class="sales-list">
-                    <!-- Ventas se cargan dinámicamente -->
-                </div>
+                <div id="sales-list" class="sales-list"></div>
             </section>
 
             <!-- MÓDULO INVENTARIO -->
@@ -104,9 +116,7 @@
                     <input type="text" id="inventory-search" placeholder="🔍 Buscar en inventario...">
                     <button id="inventory-add-btn" class="btn-primary">+ Producto</button>
                 </div>
-                <div id="inventory-list" class="inventory-list">
-                    <!-- Inventario se carga dinámicamente -->
-                </div>
+                <div id="inventory-list" class="inventory-list"></div>
             </section>
 
             <!-- MÓDULO CLIENTES -->
@@ -115,9 +125,7 @@
                     <input type="text" id="client-search" placeholder="🔍 Buscar cliente...">
                     <button id="add-client-btn" class="btn-primary">+ Cliente</button>
                 </div>
-                <div id="clients-list" class="clients-list">
-                    <!-- Clientes se cargan dinámicamente -->
-                </div>
+                <div id="clients-list" class="clients-list"></div>
             </section>
 
             <!-- MÓDULO DEUDAS -->
@@ -133,9 +141,7 @@
                     </div>
                 </div>
                 <h3>📋 Historial de Deudas</h3>
-                <div id="debts-list" class="debts-list">
-                    <!-- Deudas se cargan dinámicamente -->
-                </div>
+                <div id="debts-list" class="debts-list"></div>
             </section>
 
             <!-- MÓDULO CATÁLOGO WEB -->
@@ -199,8 +205,6 @@
         </div>
 
         <!-- MODALES -->
-
-        <!-- Modal Producto -->
         <div id="product-modal" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
@@ -247,7 +251,6 @@
             </div>
         </div>
 
-        <!-- Modal Venta Rápida -->
         <div id="quick-sale-modal" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
@@ -281,7 +284,6 @@
             </div>
         </div>
 
-        <!-- Modal Cliente -->
         <div id="client-modal" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
@@ -315,7 +317,6 @@
             </div>
         </div>
 
-        <!-- Modal Deuda / Pago -->
         <div id="debt-modal" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
@@ -352,7 +353,6 @@
             </div>
         </div>
 
-        <!-- Modal Pago de Cuota -->
         <div id="payment-modal" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
@@ -382,7 +382,6 @@
             </div>
         </div>
 
-        <!-- Modal Calculadora Vuelto -->
         <div id="calculator-modal" class="modal">
             <div class="modal-content calculator-modal">
                 <div class="modal-header">
@@ -411,7 +410,6 @@
             </div>
         </div>
 
-        <!-- Modal Notificaciones -->
         <div id="notifications-modal" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
@@ -424,7 +422,6 @@
             </div>
         </div>
 
-        <!-- Modal Confirmación -->
         <div id="confirm-modal" class="modal">
             <div class="modal-content confirm-content">
                 <div class="modal-body">
@@ -437,10 +434,10 @@
             </div>
         </div>
 
-        <!-- TOAST NOTIFICATIONS -->
         <div id="toast-container" class="toast-container"></div>
     </div>
 
+    <!-- RUTA RELATIVA para app.js -->
     <script src="app.js"></script>
 </body>
 </html>
