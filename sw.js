@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dulces-aromas-v1';
+const CACHE_NAME = 'colibri-boba-v2';
 const urlsToCache = [
   './',
   './index.html',
@@ -14,7 +14,15 @@ self.addEventListener('install', (e) => {
 });
 
 self.addEventListener('activate', (e) => {
-  e.waitUntil(clients.claim());
+  e.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames
+          .filter((name) => name !== CACHE_NAME)
+          .map((name) => caches.delete(name))
+      );
+    }).then(() => clients.claim())
+  );
 });
 
 self.addEventListener('fetch', (e) => {

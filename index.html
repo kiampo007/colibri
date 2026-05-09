@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#e11d48">
-  <title>Colibrí Boba Tea</title>
+  <meta name="theme-color" content="#be123c">
+  <meta name="description" content="Colibrí Boba Tea POS v2 - Punto de venta móvil">
+  <title>Colibrí Boba Tea v2</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -21,6 +22,7 @@
       <h1 class="splash-title">Colibrí Boba Tea</h1>
       <p class="splash-sub">Bubble Tea & Refreshments</p>
       <div class="splash-loader"><div class="splash-bar"></div></div>
+      <div class="splash-version">v2.0</div>
     </div>
   </div>
 
@@ -101,10 +103,13 @@
           </div>
         </div>
         
-        <button class="fab-cart ripple" id="fabCart" onclick="openCart()">
-          🧋
-          <span class="fab-count" id="fabCount">0</span>
-        </button>
+        <div class="fab-cart-wrapper" id="fabCartWrapper">
+          <button class="fab-cart ripple" id="fabCart" onclick="openCart()">
+            <span class="fab-icon">🧋</span>
+            <span class="fab-count" id="fabCount">0</span>
+            <span class="fab-pulse"></span>
+          </button>
+        </div>
       </section>
 
       <!-- TAB: PRODUCTOS -->
@@ -167,7 +172,7 @@
       <div class="bottom-sheet-content">
         <div class="bottom-sheet-handle"></div>
         <div class="bottom-sheet-header">
-          <span>🐦 Colibrí Boba Tea</span>
+          <span>🐦 Colibrí Boba Tea <small>v2.0</small></span>
           <button class="btn-icon ripple" onclick="closeBottomSheet()">✕</button>
         </div>
         <div class="bottom-sheet-items">

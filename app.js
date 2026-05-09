@@ -1,10 +1,10 @@
 /* ============================================
-   COLIBRÍ BOBA TEA POS v1 — APP.JS
-   Mobile-First | Bottom Sheet | Safe Margins
-   Exit Confirm | Admin Config | DateTime
+   COLIBRÍ BOBA TEA POS v2.0 — APP.JS
+   Floating Cart | Glass UI | Enhanced UX
    ============================================ */
 
 const CONFIG = {
+  VERSION: '2.0',
   ITEMS_PER_ROW: 2,
   ROW_HEIGHT: 200,
   VISIBLE_BUFFER: 3,
@@ -30,7 +30,8 @@ const state = {
   confirmCallback: null,
   virtualStart: 0,
   virtualEnd: 0,
-  isFiado: false
+  isFiado: false,
+  lastScrollY: 0
 };
 
 // --- INIT ---
@@ -45,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
       setupPullRefresh();
       setupParallaxHeader();
       setupExitConfirm();
+      setupFabBehavior();
     });
   });
   
@@ -173,6 +175,50 @@ function setupPullRefresh() {
       pull.classList.remove('visible');
     }
   });
+}
+
+// --- FAB BEHAVIOR (Floating Cart) ---
+function setupFabBehavior() {
+  const main = document.querySelector('.main-content');
+  const fab = document.getElementById('fabCart');
+  if (!main || !fab) return;
+  
+  main.addEventListener('scroll', debounce(() => {
+    const currentY = main.scrollTop;
+    const wrapper = document.getElementById('fabCartWrapper');
+    
+    if (currentY > state.lastScrollY && currentY > 100) {
+      // Scrolling down - subtle hide
+      wrapper.style.transform = 'translateY(20px) scale(0.9)';
+      wrapper.style.opacity = '0.7';
+    } else {
+      // Scrolling up - show prominently
+      wrapper.style.transform = 'translateY(0) scale(1)';
+      wrapper.style.opacity = '1';
+    }
+    
+    state.lastScrollY = currentY;
+  }, 80), { passive: true });
+}
+
+function animateFab() {
+  const fab = document.getElementById('fabCart');
+  const count = document.getElementById('fabCount');
+  if (!fab || !count) return;
+  
+  const qty = state.cart.reduce((sum, item) => sum + item.qty, 0);
+  
+  if (qty > 0) {
+    fab.classList.add('fab-float');
+    count.classList.remove('hidden');
+    
+    // Trigger bounce animation
+    count.classList.remove('bounce');
+    void count.offsetWidth; // Force reflow
+    count.classList.add('bounce');
+  } else {
+    fab.classList.remove('fab-float');
+  }
 }
 
 // --- INDEXEDDB ---
@@ -399,7 +445,7 @@ function renderProducts() {
     const margenColor = margen >= 50 ? 'var(--success)' : margen >= 30 ? 'var(--warning)' : 'var(--danger)';
     
     html += `
-      <div class="product-card" style="position:absolute;top:${top}px;left:${left}%;width:${100/itemsPerRow}%;padding:5px;" onclick="addToCart('${prod.id}')" oncontextmenu="event.preventDefault(); quickAdjust('${prod.id}', -1);">
+      <div class="product-card" style="position:absolute;top:${top}px;left:${left}%;width:${100/itemsPerRow}%;padding:6px;" onclick="addToCart('${prod.id}')" oncontextmenu="event.preventDefault(); quickAdjust('${prod.id}', -1);">
         <div class="product-img">${fotoHtml}</div>
         <div class="product-info">
           <div class="product-name">${escapeHtml(prod.nombre)}</div>
@@ -408,7 +454,7 @@ function renderProducts() {
             <span class="product-price">$${formatNumber(prod.precio)}</span>
             <span class="product-stock ${stockClass}">${stockText}</span>
           </div>
-          <div style="font-size:10px;color:${margenColor};margin-top:3px;font-weight:600;">Margen: ${margen}%</div>
+          <div style="font-size:10px;color:${margenColor};margin-top:4px;font-weight:700;letter-spacing:0.3px;">Margen: ${margen}%</div>
         </div>
       </div>`;
   });
@@ -496,6 +542,7 @@ function addToCart(productId) {
   }
   
   updateCartUI();
+  animateFab();
   showToast(`${product.nombre} agregado`);
 }
 
@@ -506,6 +553,10 @@ function updateCartUI() {
   
   countEl.textContent = count;
   fab.classList.toggle('hidden', count === 0);
+  
+  if (count > 0) {
+    animateFab();
+  }
 }
 
 function openCart() {
@@ -536,7 +587,7 @@ function renderCartItems() {
       </div>
       <div class="cart-item-qty">
         <button class="qty-btn ripple" onclick="changeQty('${item.id}', -1)">−</button>
-        <span>${item.qty}</span>
+        <span style="font-weight:700;min-width:20px;text-align:center;">${item.qty}</span>
         <button class="qty-btn ripple" onclick="changeQty('${item.id}', 1)">+</button>
       </div>
     </div>
@@ -695,24 +746,24 @@ function showTicket(sale) {
   
   document.getElementById('ticketPrint').innerHTML = `
     <div class="ticket-header">
-      <div style="font-size:16px;font-weight:bold;">🐦 Colibrí Boba Tea</div>
+      <div style="font-size:17px;font-weight:bold;">🐦 Colibrí Boba Tea</div>
       <div>Bubble Tea & Refreshments</div>
-      <div style="margin-top:6px;">${date.toLocaleDateString()} ${date.toLocaleTimeString()}</div>
+      <div style="margin-top:8px;">${date.toLocaleDateString()} ${date.toLocaleTimeString()}</div>
     </div>
     ${itemsHtml}
-    <div style="border-top:1px dashed #ccc;margin:8px 0;padding-top:8px;">
+    <div style="border-top:1px dashed #ccc;margin:10px 0;padding-top:10px;">
       <div class="ticket-line"><span>Subtotal</span><span>$${formatNumber(sale.subtotal)}</span></div>
       ${sale.descuento > 0 ? `<div class="ticket-line"><span>Descuento</span><span>-$${formatNumber(sale.descuento)}</span></div>` : ''}
-      <div class="ticket-line" style="font-weight:bold;font-size:14px;"><span>TOTAL</span><span>$${formatNumber(sale.total)}</span></div>
+      <div class="ticket-line" style="font-weight:bold;font-size:15px;margin-top:4px;"><span>TOTAL</span><span>$${formatNumber(sale.total)}</span></div>
     </div>
-    <div style="margin-top:8px;">
+    <div style="margin-top:10px;">
       ${sale.pagos.efectivo > 0 ? `<div class="ticket-line"><span>Efectivo</span><span>$${formatNumber(sale.pagos.efectivo)}</span></div>` : ''}
       ${sale.pagos.transf > 0 ? `<div class="ticket-line"><span>Transferencia</span><span>$${formatNumber(sale.pagos.transf)}</span></div>` : ''}
       ${sale.pagos.tarjeta > 0 ? `<div class="ticket-line"><span>Tarjeta</span><span>$${formatNumber(sale.pagos.tarjeta)}</span></div>` : ''}
-      ${sale.vuelto > 0 ? `<div class="ticket-line" style="color:#16a34a;"><span>Vuelto</span><span>$${formatNumber(sale.vuelto)}</span></div>` : ''}
-      ${sale.esFiado ? `<div class="ticket-line" style="color:var(--warning);"><span>🤝 FIADO</span><span>Cuotas pendientes</span></div>` : ''}
+      ${sale.vuelto > 0 ? `<div class="ticket-line" style="color:#16a34a;font-weight:700;"><span>Vuelto</span><span>$${formatNumber(sale.vuelto)}</span></div>` : ''}
+      ${sale.esFiado ? `<div class="ticket-line" style="color:var(--warning);font-weight:700;"><span>🤝 FIADO</span><span>Cuotas pendientes</span></div>` : ''}
     </div>
-    <div style="text-align:center;margin-top:16px;font-size:11px;">
+    <div style="text-align:center;margin-top:18px;font-size:11px;color:#666;">
       ¡Gracias por tu visita!<br>Colibrí Boba Tea 🧋
     </div>
   `;
@@ -723,20 +774,22 @@ function showTicket(sale) {
 
 function launchConfetti() {
   const container = document.getElementById('confettiContainer');
-  const colors = ['#e11d48', '#f97316', '#fda4af', '#f59e0b', '#dc2626', '#16a34a'];
+  const colors = ['#e11d48', '#f97316', '#fda4af', '#f59e0b', '#dc2626', '#16a34a', '#8b5cf6'];
   
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < 40; i++) {
     const piece = document.createElement('div');
     piece.className = 'confetti-piece';
     piece.style.left = Math.random() * 100 + '%';
     piece.style.background = colors[Math.floor(Math.random() * colors.length)];
-    piece.style.animationDelay = Math.random() * 0.5 + 's';
-    piece.style.animationDuration = (2 + Math.random() * 2) + 's';
+    piece.style.animationDelay = Math.random() * 0.6 + 's';
+    piece.style.animationDuration = (2.5 + Math.random() * 2) + 's';
     piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+    piece.style.width = (6 + Math.random() * 6) + 'px';
+    piece.style.height = piece.style.width;
     container.appendChild(piece);
   }
   
-  setTimeout(() => container.innerHTML = '', 4000);
+  setTimeout(() => container.innerHTML = '', 4500);
 }
 
 function printTicket() { window.print(); }
@@ -763,15 +816,15 @@ function renderInventory() {
         <div class="list-item-main">
           <div class="list-item-title">${escapeHtml(p.nombre)} ${p.variante ? `<span style="color:var(--text-2);font-weight:400;">(${escapeHtml(p.variante)})</span>` : ''}</div>
           <div class="list-item-sub">
-            Costo: $${formatNumber(p.costo)} • Venta: $${formatNumber(p.precio)} • Stock: <span class="${stockClass}">${p.stock}</span>
+            Costo: $${formatNumber(p.costo)} • Venta: $${formatNumber(p.precio)} • Stock: <span class="${stockClass}" style="font-weight:700;">${p.stock}</span>
           </div>
-          <div class="margen-indicator ${margenClass}" style="margin-top:4px;padding:3px 8px;font-size:10px;">
+          <div class="margen-indicator ${margenClass}" style="margin-top:6px;padding:4px 10px;font-size:11px;display:inline-flex;border-radius:8px;">
             Margen: ${margen}% ${margen >= 50 ? '✓' : margen >= 30 ? '•' : '⚠'}
           </div>
         </div>
         <div class="list-item-actions">
-          <button class="btn-icon ripple" style="background:var(--bg);color:var(--text);width:32px;height:32px;" onclick="event.stopPropagation();adjustStock('${p.id}', 1)">+</button>
-          <button class="btn-icon ripple" style="background:var(--bg);color:var(--danger);width:32px;height:32px;" onclick="event.stopPropagation();adjustStock('${p.id}', -1)">−</button>
+          <button class="btn-icon ripple" style="background:var(--bg);color:var(--text);width:34px;height:34px;font-size:18px;" onclick="event.stopPropagation();adjustStock('${p.id}', 1)">+</button>
+          <button class="btn-icon ripple" style="background:var(--bg);color:var(--danger);width:34px;height:34px;font-size:18px;" onclick="event.stopPropagation();adjustStock('${p.id}', -1)">−</button>
         </div>
       </div>
     `;
@@ -808,7 +861,7 @@ function calcMargen() {
   const margenStr = margen.toFixed(0);
   
   indicator.className = 'margen-indicator';
-  badge.innerHTML = `Margen: <span style="font-size:14px;">${margen >= 50 ? '🟢' : margen >= 30 ? '🟡' : '🔴'}</span>`;
+  badge.innerHTML = `Margen: <span style="font-size:16px;">${margen >= 50 ? '🟢' : margen >= 30 ? '🟡' : '🔴'}</span>`;
   porc.textContent = `${margenStr}%`;
   
   if (margen >= 50) indicator.classList.add('buen-margen');
@@ -944,9 +997,9 @@ function renderClients() {
       <div class="list-item" onclick="viewClient('${c.id}')">
         <div class="list-item-main">
           <div class="list-item-title">${escapeHtml(c.nombre)}</div>
-          <div class="list-item-sub">${c.tel || 'Sin teléfono'} ${debtTotal > 0 ? `• Deuda: $${formatNumber(debtTotal)}` : ''}</div>
+          <div class="list-item-sub">${c.tel || 'Sin teléfono'} ${debtTotal > 0 ? `• <span style="color:var(--warning);font-weight:700;">Deuda: $${formatNumber(debtTotal)}</span>` : ''}</div>
         </div>
-        <span style="font-size:18px;">›</span>
+        <span style="font-size:20px;color:var(--text-2);">›</span>
       </div>
     `;
   }).join('');
@@ -997,25 +1050,25 @@ function viewClient(id) {
   
   let html = `
     <div style="padding:16px;">
-      <h3 style="margin-bottom:16px;">${escapeHtml(c.nombre)}</h3>
-      ${c.tel ? `<p style="color:var(--text-2);margin-bottom:8px;">📞 ${c.tel}</p>` : ''}
-      ${totalDebt > 0 ? `<p style="color:var(--warning);font-weight:700;margin-bottom:16px;">💳 Deuda total: $${formatNumber(totalDebt)}</p>` : '<p style="color:var(--success);margin-bottom:16px;">✓ Sin deudas pendientes</p>'}
-      <h4 style="margin:16px 0 8px;">Historial de créditos:</h4>
+      <h3 style="margin-bottom:16px;font-size:20px;font-weight:800;">${escapeHtml(c.nombre)}</h3>
+      ${c.tel ? `<p style="color:var(--text-2);margin-bottom:10px;font-weight:500;">📞 ${c.tel}</p>` : ''}
+      ${totalDebt > 0 ? `<p style="color:var(--warning);font-weight:800;margin-bottom:16px;font-size:16px;">💳 Deuda total: $${formatNumber(totalDebt)}</p>` : '<p style="color:var(--success);font-weight:700;margin-bottom:16px;">✓ Sin deudas pendientes</p>'}
+      <h4 style="margin:18px 0 10px;font-size:14px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--text-2);">Historial de créditos</h4>
   `;
   
   if (clientDebts.length === 0) {
-    html += '<p style="color:var(--text-2);">Sin registros</p>';
+    html += '<p style="color:var(--text-2);font-weight:500;">Sin registros</p>';
   } else {
     html += clientDebts.map(d => `
-      <div style="background:var(--bg);padding:12px;border-radius:12px;margin-bottom:8px;">
-        <div style="display:flex;justify-content:space-between;">
-          <span style="font-weight:600;">$${formatNumber(d.montoTotal)}</span>
-          <span style="font-size:12px;color:var(--text-2);">${new Date(d.fecha).toLocaleDateString()}</span>
+      <div style="background:var(--bg);padding:14px;border-radius:14px;margin-bottom:10px;border:1.5px solid var(--border);">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-weight:800;font-size:15px;color:var(--text);">$${formatNumber(d.montoTotal)}</span>
+          <span style="font-size:12px;color:var(--text-2);font-weight:500;">${new Date(d.fecha).toLocaleDateString()}</span>
         </div>
-        <div style="font-size:13px;color:var(--text-2);margin-top:4px;">
-          ${d.cuotasTotal} cuotas • ${d.estado === 'pendiente' ? `$${formatNumber(d.montoPendiente)} pendiente` : 'Pagado'}
+        <div style="font-size:13px;color:var(--text-2);margin-top:6px;font-weight:500;">
+          ${d.cuotasTotal} cuotas • ${d.estado === 'pendiente' ? `<span style="color:var(--warning);font-weight:700;">$${formatNumber(d.montoPendiente)} pendiente</span>` : '<span style="color:var(--success);font-weight:700;">Pagado</span>'}
         </div>
-        ${d.estado === 'pendiente' ? `<button class="btn-primary ripple" style="margin-top:8px;width:100%;" onclick="payInstallment('${d.id}')">Pagar cuota</button>` : ''}
+        ${d.estado === 'pendiente' ? `<button class="btn-primary ripple" style="margin-top:12px;width:100%;" onclick="payInstallment('${d.id}')">Pagar cuota</button>` : ''}
       </div>
     `).join('');
   }
@@ -1056,16 +1109,16 @@ function renderDebts() {
     const isOverdue = d.proximaFecha && new Date(d.proximaFecha) < new Date();
     
     return `
-      <div class="list-item" style="${isOverdue ? 'border-left:3px solid var(--warning);' : ''}">
+      <div class="list-item" style="${isOverdue ? 'border-left:4px solid var(--warning);' : ''}">
         <div class="list-item-main">
           <div class="list-item-title">${escapeHtml(c?.nombre || 'Cliente desconocido')}</div>
           <div class="list-item-sub">
             Cuota ${d.cuotaActual}/${d.cuotasTotal} • $${formatNumber(d.montoCuota)}/cuota
-            ${d.proximaFecha ? `<br>Próximo: ${new Date(d.proximaFecha).toLocaleDateString()} ${isOverdue ? '⚠️ VENCIDO' : ''}` : ''}
+            ${d.proximaFecha ? `<br>Próximo: ${new Date(d.proximaFecha).toLocaleDateString()} ${isOverdue ? '<span style="color:var(--danger);font-weight:800;">⚠️ VENCIDO</span>' : ''}` : ''}
           </div>
         </div>
         <div class="list-item-actions">
-          <button class="btn-primary ripple" style="padding:6px 12px;font-size:12px;" onclick="payInstallment('${d.id}')">Pagar</button>
+          <button class="btn-primary ripple" style="padding:8px 14px;font-size:12px;" onclick="payInstallment('${d.id}')">Pagar</button>
         </div>
       </div>
     `;
@@ -1179,7 +1232,7 @@ function renderReports() {
           <div class="list-item-title">$${formatNumber(s.total)}</div>
           <div class="list-item-sub">${s.items.length} items • ${new Date(s.fecha).toLocaleString()} ${s.esFiado ? '• 🤝 FIADO' : ''}</div>
         </div>
-        <span style="color:var(--success);font-weight:700;">✓</span>
+        <span style="color:var(--success);font-weight:800;font-size:18px;">✓</span>
       </div>
     `).join('');
   }
@@ -1235,13 +1288,13 @@ function renderChart(sales) {
     
     ctx.fillStyle = gradient;
     ctx.beginPath();
-    ctx.roundRect(x, y, barW, barH, 4);
+    ctx.roundRect(x, y, barW, barH, 6);
     ctx.fill();
     
     ctx.fillStyle = '#431407';
-    ctx.font = '11px sans-serif';
+    ctx.font = 'bold 11px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(`$${(v/1000).toFixed(0)}k`, x + barW/2, y - 6);
+    ctx.fillText(`$${(v/1000).toFixed(0)}k`, x + barW/2, y - 8);
   });
 }
 
@@ -1260,7 +1313,7 @@ function setReportRange(range) {
 // --- EXCEL EXPORT/IMPORT ---
 function exportExcel() {
   const data = [
-    ['COLIBRÍ BOBA TEA - BACKUP'],
+    ['COLIBRÍ BOBA TEA - BACKUP v2.0'],
     ['Exportado:', new Date().toLocaleString()],
     [],
     ['=== PRODUCTOS ==='],
@@ -1277,7 +1330,7 @@ function exportExcel() {
   
   data.push([], ['=== VENTAS ==='], ['ID', 'Fecha', 'Items', 'Subtotal', 'Descuento', 'Total', 'Efectivo', 'Transferencia', 'Tarjeta', 'Vuelto', 'Fiado']);
   state.sales.forEach(s => {
-    const items = s.items.map(i => `${i.qtx} ${i.nombre}`).join('; ');
+    const items = s.items.map(i => `${i.qty}x ${i.nombre}`).join('; ');
     data.push([s.id, s.fecha, items, s.subtotal, s.descuento, s.total, s.pagos.efectivo, s.pagos.transf, s.pagos.tarjeta, s.vuelto, s.esFiado ? 'SI' : 'NO']);
   });
   
@@ -1362,7 +1415,7 @@ function showNotifs() {
   const list = document.getElementById('notifList');
   
   if (state.notifications.length === 0) {
-    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-2);">Sin notificaciones</div>';
+    list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-2);font-weight:500;">Sin notificaciones</div>';
   } else {
     list.innerHTML = state.notifications.map(n => `
       <div class="notif-item ${n.type}">
