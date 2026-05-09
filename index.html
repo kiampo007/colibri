@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#00d4aa">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>🌸 Colibrí Boba Tea v3.0</title>
+    <title>🌸 Colibrí Boba Tea v4.0</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3081/3081840.png">
@@ -29,7 +29,7 @@
         <div class="splash-content">
             <div class="colibri-logo">🌸</div>
             <h1>Colibrí Boba Tea</h1>
-            <p>v3.0 - Sistema POS Profesional</p>
+            <p>v4.1 - Sistema POS Profesional</p>
             <div class="loading-bar"><div class="loading-progress"></div></div>
         </div>
     </div>
@@ -68,7 +68,7 @@
             </ul>
             <div class="sidebar-footer">
                 <p>© 2026 Colibrí Boba Tea</p>
-                <p class="version">v3.0 Pro + Bodega</p>
+                <p class="version">v4.1 Pro + Bodega</p>
             </div>
         </nav>
         <div id="sidebar-overlay" class="sidebar-overlay"></div>
@@ -124,22 +124,24 @@
                 <div id="debts-list" class="debts-list"></div>
             </section>
 
-            <!-- 🆕 MÓDULO BODEGA / INGREDIENTES -->
+            <!-- 🆕 MÓDULO BODEGA COMPLETA -->
             <section id="module-bodega" class="module">
                 <div class="stats-row">
-                    <div class="stat-card">
-                        <span class="stat-value" id="bodega-total-value">$0</span>
-                        <span class="stat-label">Valor Bodega</span>
-                    </div>
-                    <div class="stat-card warning">
-                        <span class="stat-value" id="bodega-low-stock">0</span>
-                        <span class="stat-label">Stock Bajo</span>
-                    </div>
+                    <div class="stat-card"><span class="stat-value" id="bodega-total-value">$0</span><span class="stat-label">Valor Bodega</span></div>
+                    <div class="stat-card warning"><span class="stat-value" id="bodega-low-stock">0</span><span class="stat-label">Stock Bajo</span></div>
+                    <div class="stat-card"><span class="stat-value" id="bodega-purchases-month">$0</span><span class="stat-label">Compras Mes</span></div>
+                    <div class="stat-card warning"><span class="stat-value" id="bodega-waste-month">$0</span><span class="stat-label">Mermas Mes</span></div>
+                    <div class="stat-card" style="background:rgba(231,76,60,0.1);"><span class="stat-value" id="bodega-expiring">0</span><span class="stat-label">Por Vencer</span></div>
                 </div>
 
                 <div class="bodega-tabs">
                     <button class="bodega-tab active" onclick="showBodegaTab('ingredients')">📦 Ingredientes</button>
                     <button class="bodega-tab" onclick="showBodegaTab('recipes')">🧪 Recetas</button>
+                    <button class="bodega-tab" onclick="showBodegaTab('purchases')">📥 Compras</button>
+                    <button class="bodega-tab" onclick="showBodegaTab('waste')">🗑️ Mermas</button>
+                    <button class="bodega-tab" onclick="showBodegaTab('suppliers')">🏭 Proveedores</button>
+                    <button class="bodega-tab" onclick="showBodegaTab('batches')">📅 Lotes</button>
+                    <button class="bodega-tab" onclick="showBodegaTab('reports')">📊 Reportes</button>
                 </div>
 
                 <div id="bodega-ingredients-tab" class="bodega-tab-content active">
@@ -156,6 +158,43 @@
                         <button id="add-recipe-btn" class="btn-primary">+ Receta</button>
                     </div>
                     <div id="recipes-list" class="recipes-list"></div>
+                </div>
+
+                <div id="bodega-purchases-tab" class="bodega-tab-content">
+                    <div class="search-bar">
+                        <input type="text" id="purchase-search" placeholder="🔍 Buscar compra...">
+                        <button id="add-purchase-btn" class="btn-primary">+ Compra</button>
+                    </div>
+                    <div id="purchases-list" class="purchases-list"></div>
+                </div>
+
+                <div id="bodega-waste-tab" class="bodega-tab-content">
+                    <div class="search-bar">
+                        <input type="text" id="waste-search" placeholder="🔍 Buscar merma...">
+                        <button id="add-waste-btn" class="btn-primary">+ Merma</button>
+                    </div>
+                    <div id="waste-list" class="waste-list"></div>
+                </div>
+
+                <div id="bodega-suppliers-tab" class="bodega-tab-content">
+                    <div class="search-bar">
+                        <input type="text" id="supplier-search" placeholder="🔍 Buscar proveedor...">
+                        <button id="add-supplier-btn" class="btn-primary">+ Proveedor</button>
+                    </div>
+                    <div id="suppliers-list" class="suppliers-list"></div>
+                </div>
+
+                <div id="bodega-batches-tab" class="bodega-tab-content">
+                    <div class="search-bar">
+                        <input type="text" id="batch-search" placeholder="🔍 Buscar lote...">
+                        <button id="add-batch-btn" class="btn-primary">+ Lote</button>
+                    </div>
+                    <div id="batches-list" class="batches-list"></div>
+                </div>
+
+                <div id="bodega-reports-tab" class="bodega-tab-content">
+                    <div id="cost-report" style="margin-bottom:20px;"></div>
+                    <div id="movement-report"></div>
                 </div>
             </section>
 
@@ -307,7 +346,7 @@
             </div>
         </div>
 
-        <!-- 🆕 MODAL INGREDIENTE -->
+        <!-- 🆕 MODALES BODEGA -->
         <div id="ingredient-modal" class="modal">
             <div class="modal-content">
                 <div class="modal-header"><h3 id="ingredient-modal-title">Nuevo Ingrediente</h3><button class="close-modal">×</button></div>
@@ -327,27 +366,118 @@
                     <div class="form-group"><label>Stock Actual</label><input type="number" id="ingredient-stock" value="0" min="0" step="0.01"></div>
                     <div class="form-group"><label>Stock Mínimo (alerta)</label><input type="number" id="ingredient-min-stock" value="1" min="0" step="0.01"></div>
                     <div class="form-group"><label>Costo por unidad</label><input type="number" id="ingredient-cost" placeholder="0" min="0"></div>
-                    <div class="form-group"><label>Proveedor</label><input type="text" id="ingredient-supplier" placeholder="Nombre proveedor"></div>
+                    <div class="form-group"><label>Proveedor</label><select id="ingredient-supplier"><option value="">Sin proveedor</option></select></div>
                     <div class="form-group"><label>Ubicación en bodega</label><input type="text" id="ingredient-location" placeholder="Estante A1, Refrigerador..."></div>
                     <button id="save-ingredient-btn" class="btn-primary btn-full">💾 Guardar Ingrediente</button>
                 </div>
             </div>
         </div>
 
-        <!-- 🆕 MODAL RECETA -->
         <div id="recipe-modal" class="modal">
             <div class="modal-content" style="max-height:90vh;">
                 <div class="modal-header"><h3>Crear Receta / Fórmula</h3><button class="close-modal">×</button></div>
                 <div class="modal-body">
                     <input type="hidden" id="recipe-id">
                     <div class="form-group"><label>Producto *</label><select id="recipe-product"><option value="">Seleccionar producto...</option></select></div>
-
                     <h4 style="margin:16px 0 8px;font-size:15px;color:var(--primary);">🧪 Ingredientes:</h4>
                     <div id="recipe-items-container"></div>
                     <button id="recipe-add-item" class="btn-secondary" style="width:100%;margin:8px 0;">+ Agregar Ingrediente</button>
-
                     <div id="recipe-preview" class="installment-preview" style="margin-top:16px;"></div>
                     <button id="save-recipe-btn" class="btn-primary btn-full">💾 Guardar Receta</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 🆕 MODAL COMPRA -->
+        <div id="purchase-modal" class="modal">
+            <div class="modal-content" style="max-height:90vh;">
+                <div class="modal-header"><h3>📥 Entrada de Mercancía</h3><button class="close-modal">×</button></div>
+                <div class="modal-body">
+                    <input type="hidden" id="purchase-id">
+                    <div class="form-group"><label>Proveedor *</label><select id="purchase-supplier"><option value="">Seleccionar proveedor...</option></select></div>
+                    <div class="form-group"><label>Fecha</label><input type="date" id="purchase-date"></div>
+                    <div class="form-group"><label>Forma de Pago</label><select id="purchase-payment"><option value="contado">💵 Contado</option><option value="credito">📝 Crédito</option><option value="transferencia">📱 Transferencia</option></select></div>
+                    <div class="form-group"><label>Notas</label><input type="text" id="purchase-notes" placeholder="Notas de la compra..."></div>
+
+                    <h4 style="margin:16px 0 8px;font-size:15px;color:var(--primary);">📦 Items:</h4>
+                    <div id="purchase-items-container"></div>
+                    <button id="purchase-add-item" class="btn-secondary" style="width:100%;margin:8px 0;">+ Agregar Item</button>
+
+                    <div style="margin-top:16px;padding:16px;background:rgba(0,212,170,0.1);border-radius:10px;display:flex;justify-content:space-between;align-items:center;">
+                        <span style="font-size:16px;font-weight:600;">TOTAL:</span>
+                        <span id="purchase-total" style="font-size:22px;font-weight:700;color:var(--primary);">$0</span>
+                    </div>
+                    <button id="save-purchase-btn" class="btn-primary btn-full">💾 Registrar Compra</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 🆕 MODAL MERMA -->
+        <div id="waste-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header"><h3>🗑️ Registrar Merma</h3><button class="close-modal">×</button></div>
+                <div class="modal-body">
+                    <input type="hidden" id="waste-id">
+                    <div class="form-group"><label>Ingrediente *</label><select id="waste-ingredient"><option value="">Seleccionar ingrediente...</option></select></div>
+                    <div class="form-group"><label>Cantidad perdida *</label><input type="number" id="waste-quantity" placeholder="0" step="0.01"></div>
+                    <div class="form-group"><label>Motivo</label><select id="waste-reason">
+                        <option value="Vencido">📅 Vencido</option>
+                        <option value="Dañado">💔 Dañado</option>
+                        <option value="Derrame">💧 Derrame/Accidente</option>
+                        <option value="Error">❌ Error de preparación</option>
+                        <option value="Robo">🔒 Robo/Pérdida</option>
+                        <option value="Otro">🔧 Otro</option>
+                    </select></div>
+                    <div style="margin-top:16px;padding:12px;background:rgba(231,76,60,0.1);border-radius:10px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <span style="font-size:14px;">Costo estimado:</span>
+                            <span id="waste-cost" style="font-size:18px;font-weight:700;color:#e74c3c;">$0</span>
+                        </div>
+                    </div>
+                    <button id="save-waste-btn" class="btn-danger btn-full">🗑️ Registrar Merma</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 🆕 MODAL PROVEEDOR -->
+        <div id="supplier-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header"><h3 id="supplier-modal-title">Nuevo Proveedor</h3><button class="close-modal">×</button></div>
+                <div class="modal-body">
+                    <input type="hidden" id="supplier-id">
+                    <div class="form-group"><label>Nombre / Razón Social *</label><input type="text" id="supplier-name" placeholder="Ej: Proveedor Tapioca SA"></div>
+                    <div class="form-group"><label>Persona de Contacto</label><input type="text" id="supplier-contact" placeholder="Nombre contacto"></div>
+                    <div class="form-group"><label>Teléfono</label><input type="tel" id="supplier-phone" placeholder="+56 9..."></div>
+                    <div class="form-group"><label>Email</label><input type="email" id="supplier-email" placeholder="email@proveedor.cl"></div>
+                    <div class="form-group"><label>Dirección</label><input type="text" id="supplier-address" placeholder="Dirección completa"></div>
+                    <div class="form-group"><label>RUT / Tax ID</label><input type="text" id="supplier-tax" placeholder="76.123.456-7"></div>
+                    <div class="form-group"><label>Condiciones de Pago</label><select id="supplier-payment">
+                        <option value="Contado">💵 Contado</option>
+                        <option value="7 días">📅 7 días</option>
+                        <option value="15 días">📅 15 días</option>
+                        <option value="30 días">📅 30 días</option>
+                        <option value="60 días">📅 60 días</option>
+                    </select></div>
+                    <div class="form-group"><label>Notas</label><textarea id="supplier-notes" placeholder="Notas adicionales..."></textarea></div>
+                    <button id="save-supplier-btn" class="btn-primary btn-full">💾 Guardar Proveedor</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 🆕 MODAL LOTE -->
+        <div id="batch-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header"><h3>📅 Registrar Lote</h3><button class="close-modal">×</button></div>
+                <div class="modal-body">
+                    <input type="hidden" id="batch-id">
+                    <div class="form-group"><label>Ingrediente *</label><select id="batch-ingredient"><option value="">Seleccionar ingrediente...</option></select></div>
+                    <div class="form-group"><label>Número de Lote *</label><input type="text" id="batch-number" placeholder="Ej: TAPI-2026-001"></div>
+                    <div class="form-group"><label>Cantidad recibida *</label><input type="number" id="batch-quantity" placeholder="0" step="0.01"></div>
+                    <div class="form-group"><label>Fecha de vencimiento *</label><input type="date" id="batch-expiry"></div>
+                    <div class="form-group"><label>Fecha de recepción</label><input type="date" id="batch-received"></div>
+                    <div class="form-group"><label>Costo total del lote</label><input type="number" id="batch-cost" placeholder="0" min="0"></div>
+                    <div class="form-group"><label>Notas</label><input type="text" id="batch-notes" placeholder="Notas del lote..."></div>
+                    <button id="save-batch-btn" class="btn-primary btn-full">💾 Registrar Lote</button>
                 </div>
             </div>
         </div>
@@ -376,14 +506,35 @@
 
     <script src="app.js"></script>
     <script>
-        // 🆕 Función para tabs de bodega
+        // Función para tabs de bodega
         function showBodegaTab(tab) {
             document.querySelectorAll('.bodega-tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.bodega-tab-content').forEach(c => c.classList.remove('active'));
 
             event.target.classList.add('active');
             document.getElementById(`bodega-${tab}-tab`).classList.add('active');
+
+            // Cargar datos específicos del tab
+            if (tab === 'purchases' && typeof loadPurchases === 'function') loadPurchases();
+            if (tab === 'waste' && typeof loadWaste === 'function') loadWaste();
+            if (tab === 'suppliers' && typeof loadSuppliers === 'function') loadSuppliers();
+            if (tab === 'batches' && typeof loadBatches === 'function') loadBatches();
+            if (tab === 'reports' && typeof loadBodegaReports === 'function') loadBodegaReports();
         }
+
+        // 🛡️ SEGURIDAD: Si algo falla, mostrar app después de 5 segundos máximo
+        setTimeout(() => {
+            const splash = document.getElementById('splash-screen');
+            const app = document.getElementById('app');
+            if (splash && splash.style.display !== 'none') {
+                console.warn('⚠️ Timeout de seguridad activado - mostrando app');
+                splash.style.opacity = '0';
+                setTimeout(() => {
+                    splash.style.display = 'none';
+                    if (app) app.style.display = 'flex';
+                }, 500);
+            }
+        }, 5000);
     </script>
 </body>
 </html>

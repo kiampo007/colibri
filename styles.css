@@ -1493,3 +1493,177 @@ body {
         width: 100% !important;
     }
 }
+
+/* ============== BODEGA v4 - ESTILOS ADICIONALES ============== */
+
+/* Pestañas de bodega con más opciones */
+.bodega-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 20px;
+    background: var(--glass);
+    padding: 6px;
+    border-radius: var(--radius);
+    border: 1px solid var(--glass-border);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+
+.bodega-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.bodega-tab {
+    flex: 1;
+    min-width: 80px;
+    padding: 10px 8px;
+    border-radius: 10px;
+    border: none;
+    background: transparent;
+    color: rgba(255,255,255,0.6);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.bodega-tab.active {
+    background: linear-gradient(135deg, rgba(0,212,170,0.3), rgba(0,212,170,0.1));
+    color: var(--primary);
+    border: 1px solid var(--primary);
+}
+
+.bodega-tab:hover:not(.active) {
+    background: rgba(255,255,255,0.1);
+    color: var(--light);
+}
+
+/* Listas de bodega */
+.purchases-list, .waste-list, .suppliers-list, .batches-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Reportes */
+#cost-report, #movement-report {
+    animation: fadeIn 0.5s ease;
+}
+
+/* Modal de compra - items */
+.purchase-item-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    padding: 10px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 10px;
+    animation: slideUp 0.3s ease;
+}
+
+.purchase-item-row select,
+.purchase-item-row input {
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    padding: 10px;
+    color: var(--light);
+    font-size: 14px;
+}
+
+.purchase-item-row select:focus,
+.purchase-item-row input:focus {
+    border-color: var(--primary);
+    outline: none;
+}
+
+/* Total de compra */
+.purchase-total-display {
+    margin-top: 16px;
+    padding: 16px;
+    background: rgba(0,212,170,0.1);
+    border-radius: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Merma - costo estimado */
+.waste-cost-display {
+    margin-top: 16px;
+    padding: 12px;
+    background: rgba(231,76,60,0.1);
+    border-radius: 10px;
+}
+
+/* Categorías de ingredientes mejoradas */
+.ingredient-category {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-left: 8px;
+}
+
+.ingredient-category.tapioca { background: rgba(0,0,0,0.3); color: #bbb; }
+.ingredient-category.te { background: rgba(0,212,170,0.2); color: #00d4aa; }
+.ingredient-category.lacteo { background: rgba(255,255,255,0.15); color: #fff; }
+.ingredient-category.endulzante { background: rgba(255,217,61,0.2); color: #ffd93d; }
+.ingredient-category.saborizante { background: rgba(255,107,157,0.2); color: #ff6b9d; }
+.ingredient-category.empaque { background: rgba(100,149,237,0.2); color: #6495ed; }
+.ingredient-category.otro { background: rgba(128,128,128,0.2); color: #aaa; }
+
+/* Stats de bodega en grid de 5 */
+@media (max-width: 768px) {
+    #module-bodega .stats-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 769px) {
+    #module-bodega .stats-row {
+        grid-template-columns: repeat(5, 1fr);
+    }
+}
+
+/* Animación para filas de receta/compra */
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive para modales grandes */
+@media (max-width: 360px) {
+    .purchase-item-row,
+    .recipe-item-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .purchase-item-row select,
+    .purchase-item-row input,
+    .recipe-item-row select,
+    .recipe-item-row input {
+        width: 100% !important;
+    }
+
+    .bodega-tab {
+        font-size: 11px;
+        padding: 8px 6px;
+    }
+}
+
+/* Scroll horizontal suave para tabs */
+.bodega-tabs {
+    scroll-behavior: smooth;
+}
