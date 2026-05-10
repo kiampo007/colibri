@@ -3,671 +3,542 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#00d4aa">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>🌸 Colibrí Boba Tea v4.0</title>
-    <link rel="stylesheet" href="styles.css">
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3081/3081840.png">
-    <script type="text/javascript">
-        (function(l) {
-            if (l.search[1] === '/' ) {
-                var decoded = l.search.slice(1).split('&').map(function(s) {
-                    return s.replace(/~and~/g, '&')
-                }).join('?');
-                window.history.replaceState(null, null,
-                    l.pathname.slice(0, -1) + decoded + l.hash
-                );
-            }
-        }(window.location))
-    </script>
+    <meta name="theme-color" content="#00B4D8">
+    <title>Colibri POS - Dulces Aromas</title>
+    <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-    <!-- SPLASH SCREEN -->
-    <div id="splash-screen" class="splash-screen">
-        <div class="splash-content">
-            <div class="colibri-logo">🌸</div>
-            <h1>Colibrí Boba Tea</h1>
-            <p>v4.1 - Sistema POS Profesional</p>
-            <div class="loading-bar"><div class="loading-progress"></div></div>
-        </div>
-    </div>
-
-    <!-- APP CONTAINER -->
-    <div id="app" class="app-container" style="display:none;">
-
+    <!-- MAIN APP -->
+    <div id="app-screen" class="screen active">
         <!-- HEADER -->
         <header class="app-header">
             <div class="header-left">
-                <button id="menu-btn" class="icon-btn">☰</button>
-                <h2 id="module-title">🧋 Productos</h2>
+                <div class="mini-logo">
+                    <svg viewBox="0 0 30 30" width="24" height="24">
+                        <path d="M15 6 Q9 12 6 18 Q7.5 15 10.5 13.5 Q12 16.5 15 15 Q18 16.5 19.5 13.5 Q22.5 15 24 18 Q21 12 15 6" fill="#00B4D8"/>
+                    </svg>
+                </div>
+                <span class="app-title">Colibri POS</span>
             </div>
             <div class="header-right">
-                <div id="shift-badge" style="display:none;padding:6px 12px;background:rgba(0,212,170,0.2);border-radius:8px;font-size:12px;font-weight:600;color:var(--primary);margin-right:8px;white-space:nowrap;"></div>
-                <button id="notif-btn" class="icon-btn">🔔<span id="notif-count" class="badge">0</span></button>
-                <button id="quick-sale-toggle" class="icon-btn" onclick="openModal('quick-sale-modal')" title="Venta Rápida">⚡</button>
-                <button id="cart-toggle-btn" class="icon-btn cart-icon">🛒<span id="cart-count" class="badge">0</span></button>
+                <button class="icon-btn" id="notif-btn" title="Notificaciones">
+                    <span class="bell">🔔</span>
+                    <span class="badge" id="notif-badge">0</span>
+                </button>
             </div>
         </header>
 
-        <!-- SIDEBAR MENU -->
-        <nav id="sidebar" class="sidebar">
-            <div class="sidebar-header">
-                <div class="colibri-mini">🌸</div>
-                <h3>Colibrí Boba Tea</h3>
-                <button id="close-sidebar" class="close-btn">×</button>
+        <!-- NOTIFICACIONES PANEL -->
+        <div id="notif-panel" class="slide-panel">
+            <div class="panel-header">
+                <h3>Notificaciones</h3>
+                <button class="close-panel">×</button>
             </div>
-            <ul class="menu-list">
-                <li data-module="productos" class="active">🧋 Productos</li>
-                <li data-module="ventas">💰 Ventas</li>
-                <li data-module="inventario">📦 Inventario</li>
-                <li data-module="clientes">👥 Clientes</li>
-                <li data-module="deudas">💳 Deudas / Créditos</li>
-                <li data-module="turnos">📊 Turnos / Caja</li>
-                <li data-module="bodega">📦 Bodega / Ingredientes</li>
-                <li data-module="catalogo">🌐 Catálogo Web</li>
-                <li data-module="config">⚙️ Configuración</li>
-            </ul>
-            <div class="sidebar-footer">
-                <p>© 2026 Colibrí Boba Tea</p>
-                <p class="version">v4.1 Pro + Bodega</p>
+            <div class="panel-content" id="notif-list">
+                <p class="empty">Sin notificaciones</p>
             </div>
-        </nav>
-        <div id="sidebar-overlay" class="sidebar-overlay"></div>
+        </div>
 
         <!-- MAIN CONTENT -->
-        <main id="main-content" class="main-content">
+        <main class="main-content">
+            <!-- DASHBOARD -->
+            <section id="mod-dashboard" class="module active">
+                <div class="dash-header">
+                    <div class="business-logo" id="business-logo">
+                        <svg viewBox="0 0 100 100" width="50" height="50">
+                            <path d="M50 20 Q30 40 20 60 Q25 50 35 45 Q40 55 50 50 Q60 55 65 45 Q75 50 80 60 Q70 40 50 20" fill="#00B4D8"/>
+                            <circle cx="50" cy="35" r="3" fill="#FFD700"/>
+                        </svg>
+                    </div>
+                    <h1 id="business-name">Dulces Aromas</h1>
+                    <p class="dash-date" id="dash-date"></p>
+                </div>
+                <div class="dash-stats">
+                    <div class="stat-card" onclick="navigateTo('ventas')">
+                        <div class="stat-icon">💰</div>
+                        <div class="stat-info">
+                            <span class="stat-label">Ventas Hoy</span>
+                            <span class="stat-value" id="dash-ventas">$0</span>
+                        </div>
+                    </div>
+                    <div class="stat-card" onclick="navigateTo('deudas')">
+                        <div class="stat-icon">📋</div>
+                        <div class="stat-info">
+                            <span class="stat-label">Deudas Activas</span>
+                            <span class="stat-value" id="dash-deudas">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-card" onclick="navigateTo('inventario')">
+                        <div class="stat-icon">📦</div>
+                        <div class="stat-info">
+                            <span class="stat-label">Stock Bajo</span>
+                            <span class="stat-value warning" id="dash-stock">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-card" onclick="navigateTo('clientes')">
+                        <div class="stat-icon">👥</div>
+                        <div class="stat-info">
+                            <span class="stat-label">Clientes</span>
+                            <span class="stat-value" id="dash-clientes">0</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="quick-actions">
+                    <h3>Acciones Rápidas</h3>
+                    <div class="action-grid">
+                        <button class="action-btn primary" onclick="navigateTo('venta-rapida')">
+                            <span class="action-icon">⚡</span>
+                            <span>Venta Rápida</span>
+                        </button>
+                        <button class="action-btn" onclick="navigateTo('productos')">
+                            <span class="action-icon">➕</span>
+                            <span>Nuevo Producto</span>
+                        </button>
+                        <button class="action-btn" onclick="navigateTo('clientes')">
+                            <span class="action-icon">👤</span>
+                            <span>Nuevo Cliente</span>
+                        </button>
+                        <button class="action-btn" onclick="navigateTo('deudas')">
+                            <span class="action-icon">💳</span>
+                            <span>Cobrar Cuota</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="recent-activity">
+                    <h3>Ventas Recientes</h3>
+                    <div id="dash-recent-ventas" class="activity-list"></div>
+                </div>
+            </section>
 
-            <!-- MÓDULO PRODUCTOS -->
-            <section id="module-productos" class="module active">
+            <!-- VENTA RÁPIDA (UI McDonald's) -->
+            <section id="mod-venta-rapida" class="module">
+                <div class="vr-header">
+                    <h2>Venta Rápida</h2>
+                    <div class="vr-search">
+                        <input type="text" id="vr-buscar" placeholder="Buscar producto..." oninput="buscarProductoVR(this.value)">
+                    </div>
+                </div>
+                <div class="vr-categories" id="vr-categorias">
+                    <button class="cat-btn active" data-cat="todos" onclick="filtrarVRCat('todos')">Todos</button>
+                    <button class="cat-btn" data-cat="perfume" onclick="filtrarVRCat('perfume')">Perfumes</button>
+                    <button class="cat-btn" data-cat="set" onclick="filtrarVRCat('set')">Sets</button>
+                    <button class="cat-btn" data-cat="accesorio" onclick="filtrarVRCat('accesorio')">Accesorios</button>
+                </div>
+                <div class="vr-products" id="vr-productos"></div>
+
+                <!-- CARRITO FLOTANTE -->
+                <div class="cart-fab" id="cart-fab" onclick="toggleCart()">
+                    <span>🛒</span>
+                    <span class="cart-count" id="cart-count">0</span>
+                </div>
+
+                <div class="cart-panel" id="cart-panel">
+                    <div class="cart-header">
+                        <h3>Tu Pedido</h3>
+                        <button class="close-cart" onclick="toggleCart()">×</button>
+                    </div>
+                    <div class="cart-items" id="cart-items"></div>
+                    <div class="cart-footer">
+                        <div class="cart-total">
+                            <span>Total:</span>
+                            <span id="cart-total">$0</span>
+                        </div>
+                        <div class="payment-options">
+                            <button class="pay-btn" onclick="pagarCart('efectivo')">💵 Efectivo</button>
+                            <button class="pay-btn" onclick="pagarCart('transferencia')">📱 Transferencia</button>
+                            <button class="pay-btn" onclick="pagarCart('tarjeta')">💳 Tarjeta</button>
+                            <button class="pay-btn credit" onclick="pagarCart('credito')">📝 Fiado</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PRODUCTOS -->
+            <section id="mod-productos" class="module">
+                <div class="section-header">
+                    <h2>Productos</h2>
+                    <button class="btn-primary" onclick="showModal('modal-nuevo-producto')">➕ Nuevo</button>
+                </div>
                 <div class="search-bar">
-                    <input type="text" id="product-search" placeholder="🔍 Buscar producto...">
-                    <button id="add-product-btn" class="btn-primary">+ Nuevo</button>
+                    <input type="text" id="prod-buscar" placeholder="Buscar por nombre, marca o categoría..." oninput="filtrarProductos()">
                 </div>
-                <div id="products-grid" class="products-grid"></div>
+                <div class="products-grid" id="productos-lista"></div>
             </section>
 
-            <!-- MÓDULO VENTAS -->
-            <section id="module-ventas" class="module">
-                <div class="stats-row">
-                    <div class="stat-card"><span class="stat-value" id="today-sales">$0</span><span class="stat-label">Hoy</span></div>
-                    <div class="stat-card"><span class="stat-value" id="week-sales">$0</span><span class="stat-label">Semana</span></div>
-                    <div class="stat-card"><span class="stat-value" id="month-sales">$0</span><span class="stat-label">Mes</span></div>
+            <!-- INVENTARIO / BODEGA -->
+            <section id="mod-inventario" class="module">
+                <div class="section-header">
+                    <h2>Bodega / Inventario</h2>
+                    <button class="btn-primary" onclick="showModal('modal-merma')">⚠️ Merma</button>
                 </div>
-                <h3>📋 Historial de Ventas</h3>
-                <div id="sales-list" class="sales-list"></div>
+                <div class="inv-tabs">
+                    <button class="inv-tab active" onclick="switchInvTab('stock')">Stock Actual</button>
+                    <button class="inv-tab" onclick="switchInvTab('movimientos')">Movimientos</button>
+                </div>
+                <div id="inv-stock" class="inv-content active">
+                    <div class="search-bar">
+                        <input type="text" id="inv-buscar" placeholder="Buscar en bodega..." oninput="filtrarInventario()">
+                    </div>
+                    <div class="inv-table" id="inv-lista"></div>
+                </div>
+                <div id="inv-movimientos" class="inv-content">
+                    <div class="movimientos-list" id="mov-lista"></div>
+                </div>
             </section>
 
-            <!-- MÓDULO INVENTARIO -->
-            <section id="module-inventario" class="module">
+            <!-- VENTAS -->
+            <section id="mod-ventas" class="module">
+                <div class="section-header">
+                    <h2>Historial de Ventas</h2>
+                    <div class="filter-group">
+                        <input type="date" id="venta-fecha-desde" onchange="filtrarVentas()">
+                        <input type="date" id="venta-fecha-hasta" onchange="filtrarVentas()">
+                    </div>
+                </div>
+                <div class="ventas-resumen">
+                    <div class="resumen-card">
+                        <span>Total Período</span>
+                        <strong id="ventas-total-periodo">$0</strong>
+                    </div>
+                    <div class="resumen-card">
+                        <span>Cantidad</span>
+                        <strong id="ventas-cantidad">0</strong>
+                    </div>
+                </div>
+                <div class="ventas-list" id="ventas-lista"></div>
+            </section>
+
+            <!-- CLIENTES -->
+            <section id="mod-clientes" class="module">
+                <div class="section-header">
+                    <h2>Clientes</h2>
+                    <button class="btn-primary" onclick="showModal('modal-nuevo-cliente')">➕ Nuevo</button>
+                </div>
                 <div class="search-bar">
-                    <input type="text" id="inventory-search" placeholder="🔍 Buscar en inventario...">
-                    <button id="inventory-add-btn" class="btn-primary">+ Producto</button>
+                    <input type="text" id="cli-buscar" placeholder="Buscar cliente..." oninput="filtrarClientes()">
                 </div>
-                <div id="inventory-list" class="inventory-list"></div>
+                <div class="clientes-list" id="clientes-lista"></div>
             </section>
 
-            <!-- MÓDULO CLIENTES -->
-            <section id="module-clientes" class="module">
-                <div class="search-bar">
-                    <input type="text" id="client-search" placeholder="🔍 Buscar cliente...">
-                    <button id="add-client-btn" class="btn-primary">+ Cliente</button>
+            <!-- DEUDAS / CRÉDITOS -->
+            <section id="mod-deudas" class="module">
+                <div class="section-header">
+                    <h2>Créditos y Deudas</h2>
                 </div>
-                <div id="clients-list" class="clients-list"></div>
-            </section>
-
-            <!-- MÓDULO DEUDAS -->
-            <section id="module-deudas" class="module">
-                <div class="stats-row">
-                    <div class="stat-card warning"><span class="stat-value" id="total-debt">$0</span><span class="stat-label">Total Deudas</span></div>
-                    <div class="stat-card success"><span class="stat-value" id="total-paid">$0</span><span class="stat-label">Total Pagado</span></div>
+                <div class="deudas-tabs">
+                    <button class="deuda-tab active" onclick="switchDeudaTab('activas')">Activas</button>
+                    <button class="deuda-tab" onclick="switchDeudaTab('historial')">Historial</button>
                 </div>
-                <h3>📋 Historial de Deudas</h3>
-                <div id="debts-list" class="debts-list"></div>
-            </section>
-
-            <!-- 🆕 MÓDULO TURNOS / CAJA -->
-            <section id="module-turnos" class="module">
-                <div class="stats-row">
-                    <div class="stat-card">
-                        <span class="stat-value" id="shift-today-sales">$0</span>
-                        <span class="stat-label">Ventas Hoy</span>
+                <div id="deudas-activas" class="deudas-content active">
+                    <div class="deudas-resumen">
+                        <div class="resumen-card danger">
+                            <span>Total Adeudado</span>
+                            <strong id="deudas-total">$0</strong>
+                        </div>
+                        <div class="resumen-card">
+                            <span>Clientes Deudores</span>
+                            <strong id="deudas-clientes">0</strong>
+                        </div>
                     </div>
-                    <div class="stat-card warning">
-                        <span class="stat-value" id="shift-today-withdrawals">$0</span>
-                        <span class="stat-label">Retiros Hoy</span>
-                    </div>
-                    <div class="stat-card success">
-                        <span class="stat-value" id="shift-today-deposits">$0</span>
-                        <span class="stat-label">Ingresos Hoy</span>
-                    </div>
-                    <div class="stat-card" style="background:rgba(0,212,170,0.1);">
-                        <span class="stat-value" id="shift-current-balance">$0</span>
-                        <span class="stat-label">En Caja Ahora</span>
-                    </div>
+                    <div class="deudas-list" id="deudas-lista"></div>
                 </div>
-
-                <div class="shift-actions" style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
-                    <button id="shift-action-open" class="btn-primary" onclick="openModal('shift-open-modal')">🟢 Abrir Turno</button>
-                    <button id="shift-action-withdraw" class="btn-secondary" onclick="openModal('shift-withdraw-modal')">💸 Retirar</button>
-                    <button id="shift-action-deposit" class="btn-secondary" onclick="openModal('shift-deposit-modal')">💰 Meter Plata</button>
-                    <button id="shift-action-close" class="btn-danger" onclick="prepareCloseShift()">🔴 Cerrar Turno</button>
-                </div>
-
-                <h3>📋 Historial de Turnos</h3>
-                <div id="shifts-list" class="shifts-list"></div>
-            </section>
-
-            <!-- MÓDULO BODEGA -->
-            <section id="module-bodega" class="module">
-                <div class="stats-row">
-                    <div class="stat-card"><span class="stat-value" id="bodega-total-value">$0</span><span class="stat-label">Valor Bodega</span></div>
-                    <div class="stat-card warning"><span class="stat-value" id="bodega-low-stock">0</span><span class="stat-label">Stock Bajo</span></div>
-                    <div class="stat-card"><span class="stat-value" id="bodega-purchases-month">$0</span><span class="stat-label">Compras Mes</span></div>
-                    <div class="stat-card warning"><span class="stat-value" id="bodega-waste-month">$0</span><span class="stat-label">Mermas Mes</span></div>
-                    <div class="stat-card" style="background:rgba(231,76,60,0.1);"><span class="stat-value" id="bodega-expiring">0</span><span class="stat-label">Por Vencer</span></div>
-                </div>
-
-                <div class="bodega-tabs">
-                    <button class="bodega-tab active" onclick="showBodegaTab('ingredients', this)">📦 Ingredientes</button>
-                    <button class="bodega-tab" onclick="showBodegaTab('recipes', this)">🧪 Recetas</button>
-                    <button class="bodega-tab" onclick="showBodegaTab('purchases', this)">📥 Compras</button>
-                    <button class="bodega-tab" onclick="showBodegaTab('waste', this)">🗑️ Mermas</button>
-                    <button class="bodega-tab" onclick="showBodegaTab('suppliers', this)">🏭 Proveedores</button>
-                    <button class="bodega-tab" onclick="showBodegaTab('batches', this)">📅 Lotes</button>
-                    <button class="bodega-tab" onclick="showBodegaTab('reports', this)">📊 Reportes</button>
-                </div>
-
-                <div id="bodega-ingredients-tab" class="bodega-tab-content active">
+                <div id="deudas-historial" class="deudas-content">
                     <div class="search-bar">
-                        <input type="text" id="ingredient-search" placeholder="🔍 Buscar ingrediente...">
-                        <button id="add-ingredient-btn" class="btn-primary">+ Ingrediente</button>
+                        <input type="text" id="deuda-hist-buscar" placeholder="Buscar en historial..." oninput="filtrarHistorialDeudas()">
                     </div>
-                    <div id="ingredients-list" class="ingredients-list"></div>
-                </div>
-
-                <div id="bodega-recipes-tab" class="bodega-tab-content">
-                    <div class="search-bar">
-                        <input type="text" id="recipe-search" placeholder="🔍 Buscar receta...">
-                        <button id="add-recipe-btn" class="btn-primary">+ Receta</button>
-                    </div>
-                    <div id="recipes-list" class="recipes-list"></div>
-                </div>
-
-                <div id="bodega-purchases-tab" class="bodega-tab-content">
-                    <div class="search-bar">
-                        <input type="text" id="purchase-search" placeholder="🔍 Buscar compra...">
-                        <button id="add-purchase-btn" class="btn-primary">+ Compra</button>
-                    </div>
-                    <div id="purchases-list" class="purchases-list"></div>
-                </div>
-
-                <div id="bodega-waste-tab" class="bodega-tab-content">
-                    <div class="search-bar">
-                        <input type="text" id="waste-search" placeholder="🔍 Buscar merma...">
-                        <button id="add-waste-btn" class="btn-primary">+ Merma</button>
-                    </div>
-                    <div id="waste-list" class="waste-list"></div>
-                </div>
-
-                <div id="bodega-suppliers-tab" class="bodega-tab-content">
-                    <div class="search-bar">
-                        <input type="text" id="supplier-search" placeholder="🔍 Buscar proveedor...">
-                        <button id="add-supplier-btn" class="btn-primary">+ Proveedor</button>
-                    </div>
-                    <div id="suppliers-list" class="suppliers-list"></div>
-                </div>
-
-                <div id="bodega-batches-tab" class="bodega-tab-content">
-                    <div class="search-bar">
-                        <input type="text" id="batch-search" placeholder="🔍 Buscar lote...">
-                        <button id="add-batch-btn" class="btn-primary">+ Lote</button>
-                    </div>
-                    <div id="batches-list" class="batches-list"></div>
-                </div>
-
-                <div id="bodega-reports-tab" class="bodega-tab-content">
-                    <div id="cost-report" style="margin-bottom:20px;"></div>
-                    <div id="movement-report"></div>
+                    <div class="deudas-list" id="deudas-historial-lista"></div>
                 </div>
             </section>
 
-            <!-- MÓDULO CATÁLOGO WEB -->
-            <section id="module-catalogo" class="module">
-                <div class="catalog-preview">
-                    <h3>🌐 Vista Previa del Catálogo</h3>
-                    <p>El catálogo web muestra tus productos públicamente</p>
-                    <button id="preview-catalog-btn" class="btn-primary">Ver Catálogo Web</button>
+            <!-- CATÁLOGO WEB -->
+            <section id="mod-catalogo" class="module">
+                <div class="section-header">
+                    <h2>Catálogo Web</h2>
+                    <button class="btn-primary" onclick="previewCatalogo()">👁️ Vista Previa</button>
                 </div>
+                <p class="info-text">Este catálogo muestra tus productos activos con stock. Se actualiza automáticamente.</p>
+                <div class="catalogo-grid" id="catalogo-lista"></div>
             </section>
 
-            <!-- MÓDULO CONFIGURACIÓN -->
-            <section id="module-config" class="module">
-                <h3>⚙️ Configuración</h3>
-                <div class="config-options">
-                    <div class="config-item">
+            <!-- CONFIGURACIÓN -->
+            <section id="mod-config" class="module">
+                <div class="section-header">
+                    <h2>Configuración</h2>
+                </div>
+                <div class="config-section">
+                    <h3>Tu Negocio</h3>
+                    <div class="form-group">
                         <label>Nombre del Negocio</label>
-                        <input type="text" id="config-business-name" value="Colibrí Boba Tea">
+                        <input type="text" id="config-nombre" value="Dulces Aromas" onchange="guardarConfig()">
                     </div>
-                    <div class="config-item">
-                        <label>Moneda</label>
-                        <select id="config-currency">
-                            <option value="CLP">$ Pesos Chilenos (CLP)</option>
-                            <option value="USD">$ Dólares (USD)</option>
-                            <option value="EUR">€ Euros (EUR)</option>
-                        </select>
+                    <div class="form-group">
+                        <label>Logo</label>
+                        <div class="logo-upload">
+                            <div class="logo-preview" id="logo-preview">
+                                <svg viewBox="0 0 100 100" width="60" height="60">
+                                    <path d="M50 20 Q30 40 20 60 Q25 50 35 45 Q40 55 50 50 Q60 55 65 45 Q75 50 80 60 Q70 40 50 20" fill="#00B4D8"/>
+                                </svg>
+                            </div>
+                            <input type="file" id="logo-file" accept="image/*" onchange="subirLogo(this)">
+                            <button class="btn-secondary" onclick="document.getElementById('logo-file').click()">📷 Cambiar Logo</button>
+                        </div>
                     </div>
-                    <div class="config-item">
-                        <label>Impuesto (%)</label>
-                        <input type="number" id="config-tax" value="0" min="0" max="100">
+                </div>
+                <div class="config-section">
+                    <h3>Backup y Datos</h3>
+                    <button class="btn-primary full" onclick="exportarBackup()">💾 Exportar Backup</button>
+                    <button class="btn-secondary full" onclick="document.getElementById('import-file').click()">📥 Importar Backup</button>
+                    <input type="file" id="import-file" accept=".json" style="display:none" onchange="importarBackup(this)">
+                    <div class="danger-zone">
+                        <button class="btn-danger full" onclick="limpiarTodo()">⚠️ Borrar Todos los Datos</button>
                     </div>
-                    <button id="save-config-btn" class="btn-primary">Guardar Configuración</button>
-                    <button id="export-data-btn" class="btn-secondary">📥 Exportar Datos (JSON)</button>
-                    <button id="export-csv-btn" class="btn-secondary">📊 Exportar CSV (Excel)</button>
-                    <button id="view-audit-btn" class="btn-secondary">📋 Ver Auditoría</button>
-                    <button id="restore-backup-btn" class="btn-secondary">🔄 Restaurar Backup</button>
-                    <button id="clear-data-btn" class="btn-danger">🗑️ Limpiar Todos los Datos</button>
                 </div>
             </section>
         </main>
 
-        <!-- FLOATING CART -->
-        <div id="floating-cart" class="floating-cart">
-            <div class="cart-header"><h3>🛒 Carrito</h3><button id="close-cart" class="close-btn">×</button></div>
-            <div id="cart-items" class="cart-items"><p class="empty-cart">Carrito vacío</p></div>
-            <div class="cart-footer">
-                <div class="cart-total"><span>Total:</span><span id="cart-total-amount">$0</span></div>
-                <div class="payment-methods">
-                    <button id="pay-cash" class="payment-btn active">💵 Efectivo</button>
-                    <button id="pay-card" class="payment-btn">💳 Tarjeta</button>
-                    <button id="pay-transfer" class="payment-btn">📱 Transferencia</button>
-                    <button id="pay-credit" class="payment-btn">📝 Fiado</button>
-                </div>
-                <button id="checkout-btn" class="btn-primary btn-full">💰 FINALIZAR VENTA</button>
-            </div>
-        </div>
+        <!-- BOTTOM NAV -->
+        <nav class="bottom-nav">
+            <button class="nav-btn active" data-module="dashboard" onclick="navigateTo('dashboard')">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-label">Inicio</span>
+            </button>
+            <button class="nav-btn" data-module="venta-rapida" onclick="navigateTo('venta-rapida')">
+                <span class="nav-icon">⚡</span>
+                <span class="nav-label">Vender</span>
+            </button>
+            <button class="nav-btn" data-module="productos" onclick="navigateTo('productos')">
+                <span class="nav-icon">📦</span>
+                <span class="nav-label">Productos</span>
+            </button>
+            <button class="nav-btn" data-module="deudas" onclick="navigateTo('deudas')">
+                <span class="nav-icon">📋</span>
+                <span class="nav-label">Deudas</span>
+            </button>
+            <button class="nav-btn" data-module="config" onclick="navigateTo('config')">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-label">Más</span>
+            </button>
+        </nav>
 
-        <!-- MODALES EXISTENTES -->
-        <div id="product-modal" class="modal">
+        <!-- MODALES -->
+        <!-- Nuevo Producto -->
+        <div class="modal" id="modal-nuevo-producto">
             <div class="modal-content">
-                <div class="modal-header"><h3 id="product-modal-title">Nuevo Producto</h3><button class="close-modal">×</button></div>
-                <div class="modal-body">
-                    <input type="hidden" id="product-id">
-                    <div class="form-group"><label>Nombre *</label><input type="text" id="product-name" placeholder="Ej: Bubble Tea de Taro"></div>
-                    <div class="form-group"><label>Precio *</label><input type="number" id="product-price" placeholder="0" min="0"></div>
-                    <div class="form-group"><label>Costo</label><input type="number" id="product-cost" placeholder="0" min="0"></div>
-                    <div class="form-group"><label>Stock</label><input type="number" id="product-stock" value="0" min="0"></div>
-                    <div class="form-group"><label>Categoría</label><select id="product-category"><option value="bubble-tea">🧋 Bubble Tea</option><option value="smoothie">🥤 Smoothie</option><option value="coffee">☕ Café</option><option value="postre">🍰 Postre</option><option value="otro">📦 Otro</option></select></div>
-                    <div class="form-group"><label>Imagen</label><input type="file" id="product-image-file" accept="image/*"><small>O URL:</small><input type="text" id="product-image-url" placeholder="https://..."><div id="image-preview" class="image-preview"></div></div>
-                    <button id="save-product-btn" class="btn-primary btn-full">💾 Guardar</button>
+                <div class="modal-header">
+                    <h3>Nuevo Producto</h3>
+                    <button class="close-modal" onclick="closeModal('modal-nuevo-producto')">×</button>
                 </div>
-            </div>
-        </div>
-
-        <div id="quick-sale-modal" class="modal">
-            <div class="modal-content">
-                <div class="modal-header"><h3>⚡ Venta Rápida</h3><button class="close-modal">×</button></div>
                 <div class="modal-body">
-                    <div class="form-group"><label>Producto</label><input type="text" id="quick-sale-product" placeholder="Nombre"></div>
-                    <div class="form-group"><label>Precio</label><input type="number" id="quick-sale-price" placeholder="0"></div>
-                    <div class="form-group"><label>Cantidad</label><input type="number" id="quick-sale-qty" value="1" min="1"></div>
-                    <div class="form-group"><label>Pago</label><select id="quick-sale-payment"><option value="efectivo">💵 Efectivo</option><option value="tarjeta">💳 Tarjeta</option><option value="transferencia">📱 Transferencia</option><option value="fiado">📝 Fiado</option></select></div>
-                    <button id="save-quick-sale-btn" class="btn-primary btn-full">✅ Registrar</button>
-                </div>
-            </div>
-        </div>
-
-        <div id="client-modal" class="modal">
-            <div class="modal-content">
-                <div class="modal-header"><h3 id="client-modal-title">Nuevo Cliente</h3><button class="close-modal">×</button></div>
-                <div class="modal-body">
-                    <input type="hidden" id="client-id">
-                    <div class="form-group"><label>Nombre *</label><input type="text" id="client-name" placeholder="Nombre"></div>
-                    <div class="form-group"><label>Teléfono</label><input type="tel" id="client-phone" placeholder="+56 9..."></div>
-                    <div class="form-group"><label>Email</label><input type="email" id="client-email" placeholder="email"></div>
-                    <div class="form-group"><label>Dirección</label><input type="text" id="client-address" placeholder="Dirección"></div>
-                    <div class="form-group"><label>Notas</label><textarea id="client-notes" placeholder="Notas..."></textarea></div>
-                    <button id="save-client-btn" class="btn-primary btn-full">💾 Guardar</button>
-                </div>
-            </div>
-        </div>
-
-        <div id="debt-modal" class="modal">
-            <div class="modal-content">
-                <div class="modal-header"><h3>Registrar Deuda</h3><button class="close-modal">×</button></div>
-                <div class="modal-body">
-                    <input type="hidden" id="debt-id">
-                    <div class="form-group"><label>Cliente *</label><select id="debt-client"><option value="">Seleccionar...</option></select></div>
-                    <div class="form-group"><label>Monto *</label><input type="number" id="debt-amount" placeholder="0"></div>
-                    <div class="form-group"><label>Cuotas (1-12)</label><input type="number" id="debt-installments" value="1" min="1" max="12"></div>
-                    <div class="form-group"><label>Vencimiento</label><input type="date" id="debt-due-date"></div>
-                    <div class="form-group"><label>Descripción</label><input type="text" id="debt-description" placeholder="Descripción"></div>
-                    <div id="installment-preview" class="installment-preview"></div>
-                    <button id="save-debt-btn" class="btn-primary btn-full">💾 Guardar</button>
-                </div>
-            </div>
-        </div>
-
-        <div id="payment-modal" class="modal">
-            <div class="modal-content">
-                <div class="modal-header"><h3>💵 Registrar Pago</h3><button class="close-modal">×</button></div>
-                <div class="modal-body">
-                    <input type="hidden" id="payment-debt-id">
-                    <div class="form-group"><label>Monto</label><input type="number" id="payment-amount" placeholder="0"></div>
-                    <div class="form-group"><label>Método</label><select id="payment-method"><option value="efectivo">💵 Efectivo</option><option value="tarjeta">💳 Tarjeta</option><option value="transferencia">📱 Transferencia</option></select></div>
-                    <div class="form-group"><label>Nota</label><input type="text" id="payment-note" placeholder="Nota"></div>
-                    <button id="save-payment-btn" class="btn-primary btn-full">✅ Confirmar</button>
-                </div>
-            </div>
-        </div>
-
-        <div id="calculator-modal" class="modal">
-            <div class="modal-content calculator-modal">
-                <div class="modal-header"><h3>🧮 Calculadora</h3><button class="close-modal">×</button></div>
-                <div class="modal-body">
-                    <div class="calc-display">
-                        <div class="calc-total">Total: <span id="calc-total">$0</span></div>
-                        <div class="calc-received"><label>Recibido:</label><input type="number" id="calc-received" placeholder="0"></div>
-                        <div class="calc-change">Vuelto: <span id="calc-change">$0</span></div>
+                    <div class="form-group">
+                        <label>Nombre *</label>
+                        <input type="text" id="np-nombre" placeholder="Ej: Lancôme Trésor">
                     </div>
-                    <div class="calc-buttons">
-                        <button class="calc-btn" data-value="1000">$1.000</button>
-                        <button class="calc-btn" data-value="2000">$2.000</button>
-                        <button class="calc-btn" data-value="5000">$5.000</button>
-                        <button class="calc-btn" data-value="10000">$10.000</button>
-                        <button class="calc-btn" data-value="20000">$20.000</button>
-                        <button class="calc-btn" data-value="50000">$50.000</button>
+                    <div class="form-group">
+                        <label>Marca</label>
+                        <input type="text" id="np-marca" placeholder="Ej: Lancôme">
                     </div>
-                    <button id="calc-clear" class="btn-secondary btn-full">🔄 Limpiar</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- 🆕 MODALES BODEGA -->
-        <div id="ingredient-modal" class="modal">
-            <div class="modal-content">
-                <div class="modal-header"><h3 id="ingredient-modal-title">Nuevo Ingrediente</h3><button class="close-modal">×</button></div>
-                <div class="modal-body">
-                    <input type="hidden" id="ingredient-id">
-                    <div class="form-group"><label>Nombre *</label><input type="text" id="ingredient-name" placeholder="Ej: Perlas de Tapioca"></div>
-                    <div class="form-group"><label>Categoría</label><select id="ingredient-category">
-                        <option value="tapioca">⚫ Perlas/Tapioca</option>
-                        <option value="te">🍃 Té</option>
-                        <option value="lacteo">🥛 Lácteo</option>
-                        <option value="endulzante">🍯 Endulzante</option>
-                        <option value="saborizante">🧪 Saborizante</option>
-                        <option value="empaque">📦 Empaque</option>
-                        <option value="otro">🔧 Otro</option>
-                    </select></div>
-                    <div class="form-group"><label>Unidad *</label><input type="text" id="ingredient-unit" placeholder="kg, g, L, un..."></div>
-                    <div class="form-group"><label>Stock Actual</label><input type="number" id="ingredient-stock" value="0" min="0" step="0.01"></div>
-                    <div class="form-group"><label>Stock Mínimo (alerta)</label><input type="number" id="ingredient-min-stock" value="1" min="0" step="0.01"></div>
-                    <div class="form-group"><label>Costo por unidad</label><input type="number" id="ingredient-cost" placeholder="0" min="0"></div>
-                    <div class="form-group"><label>Proveedor</label><select id="ingredient-supplier"><option value="">Sin proveedor</option></select></div>
-                    <div class="form-group"><label>Ubicación en bodega</label><input type="text" id="ingredient-location" placeholder="Estante A1, Refrigerador..."></div>
-                    <button id="save-ingredient-btn" class="btn-primary btn-full">💾 Guardar Ingrediente</button>
-                </div>
-            </div>
-        </div>
-
-        <div id="recipe-modal" class="modal">
-            <div class="modal-content" style="max-height:90vh;">
-                <div class="modal-header"><h3>Crear Receta / Fórmula</h3><button class="close-modal">×</button></div>
-                <div class="modal-body">
-                    <input type="hidden" id="recipe-id">
-                    <div class="form-group"><label>Producto *</label><select id="recipe-product"><option value="">Seleccionar producto...</option></select></div>
-                    <h4 style="margin:16px 0 8px;font-size:15px;color:var(--primary);">🧪 Ingredientes:</h4>
-                    <div id="recipe-items-container"></div>
-                    <button id="recipe-add-item" class="btn-secondary" style="width:100%;margin:8px 0;">+ Agregar Ingrediente</button>
-                    <div id="recipe-preview" class="installment-preview" style="margin-top:16px;"></div>
-                    <button id="save-recipe-btn" class="btn-primary btn-full">💾 Guardar Receta</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- 🆕 MODAL COMPRA -->
-        <div id="purchase-modal" class="modal">
-            <div class="modal-content" style="max-height:90vh;">
-                <div class="modal-header"><h3>📥 Entrada de Mercancía</h3><button class="close-modal">×</button></div>
-                <div class="modal-body">
-                    <input type="hidden" id="purchase-id">
-                    <div class="form-group"><label>Proveedor *</label><select id="purchase-supplier"><option value="">Seleccionar proveedor...</option></select></div>
-                    <div class="form-group"><label>Fecha</label><input type="date" id="purchase-date"></div>
-                    <div class="form-group"><label>Forma de Pago</label><select id="purchase-payment"><option value="contado">💵 Contado</option><option value="credito">📝 Crédito</option><option value="transferencia">📱 Transferencia</option></select></div>
-                    <div class="form-group"><label>Notas</label><input type="text" id="purchase-notes" placeholder="Notas de la compra..."></div>
-
-                    <h4 style="margin:16px 0 8px;font-size:15px;color:var(--primary);">📦 Items:</h4>
-                    <div id="purchase-items-container"></div>
-                    <button id="purchase-add-item" class="btn-secondary" style="width:100%;margin:8px 0;">+ Agregar Item</button>
-
-                    <div style="margin-top:16px;padding:16px;background:rgba(0,212,170,0.1);border-radius:10px;display:flex;justify-content:space-between;align-items:center;">
-                        <span style="font-size:16px;font-weight:600;">TOTAL:</span>
-                        <span id="purchase-total" style="font-size:22px;font-weight:700;color:var(--primary);">$0</span>
-                    </div>
-                    <button id="save-purchase-btn" class="btn-primary btn-full">💾 Registrar Compra</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- 🆕 MODAL MERMA -->
-        <div id="waste-modal" class="modal">
-            <div class="modal-content">
-                <div class="modal-header"><h3>🗑️ Registrar Merma</h3><button class="close-modal">×</button></div>
-                <div class="modal-body">
-                    <input type="hidden" id="waste-id">
-                    <div class="form-group"><label>Ingrediente *</label><select id="waste-ingredient"><option value="">Seleccionar ingrediente...</option></select></div>
-                    <div class="form-group"><label>Cantidad perdida *</label><input type="number" id="waste-quantity" placeholder="0" step="0.01"></div>
-                    <div class="form-group"><label>Motivo</label><select id="waste-reason">
-                        <option value="Vencido">📅 Vencido</option>
-                        <option value="Dañado">💔 Dañado</option>
-                        <option value="Derrame">💧 Derrame/Accidente</option>
-                        <option value="Error">❌ Error de preparación</option>
-                        <option value="Robo">🔒 Robo/Pérdida</option>
-                        <option value="Otro">🔧 Otro</option>
-                    </select></div>
-                    <div style="margin-top:16px;padding:12px;background:rgba(231,76,60,0.1);border-radius:10px;">
-                        <div style="display:flex;justify-content:space-between;align-items:center;">
-                            <span style="font-size:14px;">Costo estimado:</span>
-                            <span id="waste-cost" style="font-size:18px;font-weight:700;color:#e74c3c;">$0</span>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Precio Venta *</label>
+                            <input type="number" id="np-precio" placeholder="66500">
+                        </div>
+                        <div class="form-group">
+                            <label>Stock Inicial *</label>
+                            <input type="number" id="np-stock" placeholder="10">
                         </div>
                     </div>
-                    <button id="save-waste-btn" class="btn-danger btn-full">🗑️ Registrar Merma</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- 🆕 MODAL PROVEEDOR -->
-        <div id="supplier-modal" class="modal">
-            <div class="modal-content">
-                <div class="modal-header"><h3 id="supplier-modal-title">Nuevo Proveedor</h3><button class="close-modal">×</button></div>
-                <div class="modal-body">
-                    <input type="hidden" id="supplier-id">
-                    <div class="form-group"><label>Nombre / Razón Social *</label><input type="text" id="supplier-name" placeholder="Ej: Proveedor Tapioca SA"></div>
-                    <div class="form-group"><label>Persona de Contacto</label><input type="text" id="supplier-contact" placeholder="Nombre contacto"></div>
-                    <div class="form-group"><label>Teléfono</label><input type="tel" id="supplier-phone" placeholder="+56 9..."></div>
-                    <div class="form-group"><label>Email</label><input type="email" id="supplier-email" placeholder="email@proveedor.cl"></div>
-                    <div class="form-group"><label>Dirección</label><input type="text" id="supplier-address" placeholder="Dirección completa"></div>
-                    <div class="form-group"><label>RUT / Tax ID</label><input type="text" id="supplier-tax" placeholder="76.123.456-7"></div>
-                    <div class="form-group"><label>Condiciones de Pago</label><select id="supplier-payment">
-                        <option value="Contado">💵 Contado</option>
-                        <option value="7 días">📅 7 días</option>
-                        <option value="15 días">📅 15 días</option>
-                        <option value="30 días">📅 30 días</option>
-                        <option value="60 días">📅 60 días</option>
-                    </select></div>
-                    <div class="form-group"><label>Notas</label><textarea id="supplier-notes" placeholder="Notas adicionales..."></textarea></div>
-                    <button id="save-supplier-btn" class="btn-primary btn-full">💾 Guardar Proveedor</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- 🆕 MODAL LOTE -->
-        <div id="batch-modal" class="modal">
-            <div class="modal-content">
-                <div class="modal-header"><h3>📅 Registrar Lote</h3><button class="close-modal">×</button></div>
-                <div class="modal-body">
-                    <input type="hidden" id="batch-id">
-                    <div class="form-group"><label>Ingrediente *</label><select id="batch-ingredient"><option value="">Seleccionar ingrediente...</option></select></div>
-                    <div class="form-group"><label>Número de Lote *</label><input type="text" id="batch-number" placeholder="Ej: TAPI-2026-001"></div>
-                    <div class="form-group"><label>Cantidad recibida *</label><input type="number" id="batch-quantity" placeholder="0" step="0.01"></div>
-                    <div class="form-group"><label>Fecha de vencimiento *</label><input type="date" id="batch-expiry"></div>
-                    <div class="form-group"><label>Fecha de recepción</label><input type="date" id="batch-received"></div>
-                    <div class="form-group"><label>Costo total del lote</label><input type="number" id="batch-cost" placeholder="0" min="0"></div>
-                    <div class="form-group"><label>Notas</label><input type="text" id="batch-notes" placeholder="Notas del lote..."></div>
-                    <button id="save-batch-btn" class="btn-primary btn-full">💾 Registrar Lote</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- 🆕 MODAL ABRIR TURNO -->
-        <div id="shift-open-modal" class="modal">
-            <div class="modal-content">
-                <div class="modal-header"><h3>🟢 Abrir Turno</h3><button class="close-modal">×</button></div>
-                <div class="modal-body">
-                    <div class="form-group"><label>¿Quién abre el turno? *</label><input type="text" id="shift-open-user" placeholder="Ej: María, Carlos, Reinaldo..."></div>
-                    <div class="form-group"><label>¿Cuánto hay en caja? *</label><input type="number" id="shift-open-amount" placeholder="0" min="0"></div>
-                    <div class="form-group"><label>Notas (opcional)</label><input type="text" id="shift-open-notes" placeholder="Ej: Caja con vuelto de ayer..."></div>
-                    <button id="shift-open-btn" class="btn-primary btn-full">🟢 ABRIR TURNO</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- 🆕 MODAL RETIRAR DE CAJA -->
-        <div id="shift-withdraw-modal" class="modal">
-            <div class="modal-content">
-                <div class="modal-header"><h3>💸 Retirar de Caja</h3><button class="close-modal">×</button></div>
-                <div class="modal-body">
-                    <div class="form-group"><label>Monto a retirar *</label><input type="number" id="shift-withdraw-amount" placeholder="0" min="0"></div>
-                    <div class="form-group"><label>Motivo *</label><select id="shift-withdraw-reason">
-                        <option value="Pago proveedor">🏭 Pago a proveedor</option>
-                        <option value="Delivery">🛵 Delivery / envío</option>
-                        <option value="Gasolina">⛽ Gasolina / transporte</option>
-                        <option value="Sueldo">👤 Pago de sueldo</option>
-                        <option value="Gastos local">🏠 Gastos del local (luz, agua, etc)</option>
-                        <option value="Personal">👤 Uso personal</option>
-                        <option value="Otro">🔧 Otro</option>
-                    </select></div>
-                    <div class="form-group"><label>Notas</label><input type="text" id="shift-withdraw-notes" placeholder="Detalle del retiro..."></div>
-                    <button id="shift-withdraw-btn" class="btn-danger btn-full">💸 RETIRAR</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- 🆕 MODAL METER A CAJA -->
-        <div id="shift-deposit-modal" class="modal">
-            <div class="modal-content">
-                <div class="modal-header"><h3>💰 Meter Plata a Caja</h3><button class="close-modal">×</button></div>
-                <div class="modal-body">
-                    <div class="form-group"><label>Monto a ingresar *</label><input type="number" id="shift-deposit-amount" placeholder="0" min="0"></div>
-                    <div class="form-group"><label>Motivo *</label><select id="shift-deposit-reason">
-                        <option value="Vuelto">💵 Para dar vueltos</option>
-                        <option value="Cambio">🔄 Cambio de billetes</option>
-                        <option value="Inversión">📈 Inversión / capital</option>
-                        <option value="Devolución">↩️ Devolución de retiro</option>
-                        <option value="Otro">🔧 Otro</option>
-                    </select></div>
-                    <div class="form-group"><label>Notas</label><input type="text" id="shift-deposit-notes" placeholder="Detalle del ingreso..."></div>
-                    <button id="shift-deposit-btn" class="btn-primary btn-full">💰 INGRESAR</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- 🆕 MODAL CERRAR TURNO -->
-        <div id="shift-close-modal" class="modal">
-            <div class="modal-content">
-                <div class="modal-header"><h3>🔴 Cerrar Turno</h3><button class="close-modal">×</button></div>
-                <div class="modal-body">
-                    <div style="padding:16px;background:var(--glass);border-radius:10px;margin-bottom:16px;">
-                        <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span>En caja debería haber:</span><strong id="shift-close-expected" style="color:var(--primary);">$0</strong></div>
-                        <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span>Ventas del turno:</span><span id="shift-close-sales">$0</span></div>
-                        <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span>Retiros:</span><span id="shift-close-withdrawals" style="color:#e74c3c;">$0</span></div>
-                        <div style="display:flex;justify-content:space-between;"><span>Ingresos extras:</span><span id="shift-close-deposits" style="color:var(--primary);">$0</span></div>
+                    <div class="form-group">
+                        <label>Categoría</label>
+                        <select id="np-categoria">
+                            <option value="perfume">Perfume</option>
+                            <option value="set">Set/Combo</option>
+                            <option value="accesorio">Accesorio</option>
+                            <option value="otro">Otro</option>
+                        </select>
                     </div>
-
-                    <div class="form-group"><label>¿Cuánto hay REALMENTE en caja? *</label><input type="number" id="shift-close-amount" placeholder="0" min="0"></div>
-                    <div id="shift-close-preview" style="margin-bottom:16px;"></div>
-
-                    <div id="shift-close-reason-div" style="display:none;">
-                        <div class="form-group"><label>¿Por qué no cuadra? *</label><select id="shift-close-reason">
-                            <option value="">Seleccionar...</option>
-                            <option value="Vuelto mal">💸 Di vuelto mal a un cliente</option>
-                            <option value="Billete falso">💵 Me dieron billete falso</option>
-                            <option value="Robo">🔒 Robo / hurto</option>
-                            <option value="Merma">🗑️ Merma no registrada</option>
-                            <option value="Retiro no registrado">💸 Retiré y no lo anoté</option>
-                            <option value="Error conteo">🧮 Me equivoqué contando</option>
-                            <option value="Otro">🔧 Otro motivo</option>
-                        </select></div>
-                    </div>
-
-                    <div class="form-group"><label>¿Quién cierra el turno? *</label><input type="text" id="shift-close-user" placeholder="Nombre..."></div>
-                    <div class="form-group"><label>Notas</label><input type="text" id="shift-close-notes" placeholder="Observaciones del cierre..."></div>
-                    <button id="shift-close-btn" class="btn-danger btn-full">🔴 CERRAR TURNO</button>
-                </div>
-            </div>
-        </div>
-
-        <div id="notifications-modal" class="modal">
-            <div class="modal-content">
-                <div class="modal-header"><h3>🔔 Notificaciones</h3><button class="close-modal">×</button></div>
-                <div id="notifications-list" class="notifications-list"><p class="empty-notifications">No hay notificaciones</p></div>
-            </div>
-        </div>
-
-        <div id="confirm-modal" class="modal">
-            <div class="modal-content confirm-content">
-                <div class="modal-body">
-                    <p id="confirm-message">¿Estás seguro?</p>
-                    <div class="confirm-buttons">
-                        <button id="confirm-yes" class="btn-danger">Sí, eliminar</button>
-                        <button id="confirm-no" class="btn-secondary">Cancelar</button>
+                    <div class="form-group">
+                        <label>Foto del Producto</label>
+                        <input type="file" id="np-foto" accept="image/*" onchange="previewFotoProducto(this)">
+                        <div class="foto-preview" id="np-foto-preview"></div>
                     </div>
                 </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="closeModal('modal-nuevo-producto')">Cancelar</button>
+                    <button class="btn-primary" onclick="guardarProducto()">Guardar Producto</button>
+                </div>
             </div>
         </div>
 
-        <div id="toast-container" class="toast-container"></div>
+        <!-- Editar Producto -->
+        <div class="modal" id="modal-editar-producto">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Editar Producto</h3>
+                    <button class="close-modal" onclick="closeModal('modal-editar-producto')">×</button>
+                </div>
+                <div class="modal-body" id="edit-prod-body"></div>
+                <div class="modal-footer">
+                    <button class="btn-danger" onclick="eliminarProducto()">🗑️ Eliminar</button>
+                    <button class="btn-primary" onclick="actualizarProducto()">Guardar Cambios</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Merma -->
+        <div class="modal" id="modal-merma">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Registrar Merma o Reintegro</h3>
+                    <button class="close-modal" onclick="closeModal('modal-merma')">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Producto</label>
+                        <select id="merma-producto"></select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Tipo</label>
+                            <select id="merma-tipo">
+                                <option value="merma">Merma (desecho)</option>
+                                <option value="reintegro">Reintegro (devolución)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Cantidad</label>
+                            <input type="number" id="merma-cantidad" placeholder="1">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Motivo</label>
+                        <input type="text" id="merma-motivo" placeholder="Ej: Producto dañado, vencido...">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="closeModal('modal-merma')">Cancelar</button>
+                    <button class="btn-primary" onclick="guardarMerma()">Registrar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Nuevo Cliente -->
+        <div class="modal" id="modal-nuevo-cliente">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Nuevo Cliente</h3>
+                    <button class="close-modal" onclick="closeModal('modal-nuevo-cliente')">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Nombre *</label>
+                        <input type="text" id="nc-nombre" placeholder="Nombre completo">
+                    </div>
+                    <div class="form-group">
+                        <label>Teléfono</label>
+                        <input type="tel" id="nc-telefono" placeholder="+56 9 1234 5678">
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="nc-email" placeholder="cliente@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Dirección</label>
+                        <input type="text" id="nc-direccion" placeholder="Dirección de entrega">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="closeModal('modal-nuevo-cliente')">Cancelar</button>
+                    <button class="btn-primary" onclick="guardarCliente()">Guardar Cliente</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pago de Cuota -->
+        <div class="modal" id="modal-pago-cuota">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Pagar Cuota</h3>
+                    <button class="close-modal" onclick="closeModal('modal-pago-cuota')">×</button>
+                </div>
+                <div class="modal-body" id="pago-cuota-body"></div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="closeModal('modal-pago-cuota')">Cancelar</button>
+                    <button class="btn-primary" onclick="confirmarPagoCuota()">Confirmar Pago</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ticket / Recibo -->
+        <div class="modal" id="modal-ticket">
+            <div class="modal-content ticket-modal">
+                <div class="ticket-content" id="ticket-body"></div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="closeModal('modal-ticket')">Cerrar</button>
+                    <button class="btn-primary" onclick="imprimirTicket()">🖨️ Imprimir / Compartir</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fiado / Crédito -->
+        <div class="modal" id="modal-fiado">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Venta a Crédito (Fiado)</h3>
+                    <button class="close-modal" onclick="closeModal('modal-fiado')">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Cliente *</label>
+                        <select id="fiado-cliente"></select>
+                        <button class="btn-text" onclick="closeModal('modal-fiado');showModal('modal-nuevo-cliente')">+ Nuevo Cliente</button>
+                    </div>
+                    <div class="form-group">
+                        <label>Cantidad de Cuotas (1-12)</label>
+                        <input type="number" id="fiado-cuotas" min="1" max="12" value="1" oninput="calcularCuota()">
+                    </div>
+                    <div class="form-group">
+                        <label>Valor de cada cuota</label>
+                        <input type="text" id="fiado-valor-cuota" readonly class="readonly">
+                    </div>
+                    <div class="form-group">
+                        <label>Total de la venta</label>
+                        <input type="text" id="fiado-total" readonly class="readonly">
+                    </div>
+                    <div class="form-group">
+                        <label>Primera cuota ¿pagada ahora?</label>
+                        <select id="fiado-primera">
+                            <option value="no">No, comienza después</option>
+                            <option value="si">Sí, pagar primera ahora</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="closeModal('modal-fiado')">Cancelar</button>
+                    <button class="btn-primary" onclick="confirmarFiado()">Confirmar Crédito</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vista Previa Catálogo -->
+        <div class="modal" id="modal-catalogo-preview">
+            <div class="modal-content wide">
+                <div class="modal-header">
+                    <h3>Vista Previa del Catálogo</h3>
+                    <button class="close-modal" onclick="closeModal('modal-catalogo-preview')">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="catalogo-preview" id="catalogo-preview-content"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TOASTS -->
+        <div id="toast-container"></div>
     </div>
 
-    <script src="robustez.js"></script>
-    <script src="shifts.js"></script>
-    <script src="app.js"></script>
-    <script>
-        // Función para tabs de bodega
-        function showBodegaTab(tab, clickedElement) {
-            document.querySelectorAll('.bodega-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.bodega-tab-content').forEach(c => c.classList.remove('active'));
-
-            if (clickedElement) clickedElement.classList.add('active');
-            else {
-                const tabs = document.querySelectorAll('.bodega-tab');
-                const tabIndex = ['ingredients','recipes','purchases','waste','suppliers','batches','reports'].indexOf(tab);
-                if (tabIndex >= 0 && tabs[tabIndex]) tabs[tabIndex].classList.add('active');
-            }
-            document.getElementById(`bodega-${tab}-tab`).classList.add('active');
-
-            // Cargar datos específicos del tab
-            if (tab === 'purchases' && typeof loadPurchases === 'function') loadPurchases();
-            if (tab === 'waste' && typeof loadWaste === 'function') loadWaste();
-            if (tab === 'suppliers' && typeof loadSuppliers === 'function') loadSuppliers();
-            if (tab === 'batches' && typeof loadBatches === 'function') loadBatches();
-            if (tab === 'reports' && typeof loadBodegaReports === 'function') loadBodegaReports();
-        }
-
-        // 🛡️ SEGURIDAD: Si algo falla, mostrar app después de 5 segundos máximo
-        setTimeout(() => {
-            const splash = document.getElementById('splash-screen');
-            const app = document.getElementById('app');
-            if (splash && splash.style.display !== 'none') {
-                console.warn('⚠️ Timeout de seguridad activado - mostrando app');
-                splash.style.opacity = '0';
-                setTimeout(() => {
-                    splash.style.display = 'none';
-                    if (app) app.style.display = 'flex';
-                }, 500);
-            }
-        }, 5000);
-    </script>
+    <script src="js/utils.js"></script>
+    <script src="js/stores.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
 </body>
 </html>
