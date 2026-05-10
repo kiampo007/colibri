@@ -1667,3 +1667,67 @@ body {
 .bodega-tabs {
     scroll-behavior: smooth;
 }
+
+/* ============== TURNOS / CAJA ============== */
+.shift-actions {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.shift-actions button {
+    flex: 1;
+    min-width: 140px;
+    padding: 14px 20px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+#shift-badge {
+    animation: fadeIn 0.5s ease;
+}
+
+.shifts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.shift-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    font-size: 12px;
+    margin-top: 8px;
+}
+
+.shift-summary-item {
+    background: var(--glass);
+    padding: 10px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.shift-summary-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.shift-summary-label {
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+    margin-top: 2px;
+}
+
+/* Responsive para turnos */
+@media (max-width: 480px) {
+    .shift-actions button {
+        min-width: 100%;
+    }
+
+    .shift-summary {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}

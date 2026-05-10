@@ -151,6 +151,8 @@ function initDB() {
                 bs.createIndex('ingredientId', 'ingredientId', { unique: false });
                 bs.createIndex('expiryDate', 'expiryDate', { unique: false });
             }
+            // 🆕 Stores de turnos
+            if (typeof initShiftStores === 'function') initShiftStores(database);
             console.log(`🔄 BD migrada: v${oldVersion} → v${DB_VERSION}`);
         };
 
@@ -507,6 +509,18 @@ function setupEventListeners() {
     if (addBatchBtn) addBatchBtn.addEventListener('click', () => openBatchModal());
     if (saveBatchBtn) saveBatchBtn.addEventListener('click', saveBatch);
 
+    // 🆕 TURNOS
+    const shiftOpenBtn = document.getElementById('shift-open-btn');
+    const shiftWithdrawBtn = document.getElementById('shift-withdraw-btn');
+    const shiftDepositBtn = document.getElementById('shift-deposit-btn');
+    const shiftCloseBtn = document.getElementById('shift-close-btn');
+    const shiftCloseAmount = document.getElementById('shift-close-amount');
+    if (shiftOpenBtn) shiftOpenBtn.addEventListener('click', openShift);
+    if (shiftWithdrawBtn) shiftWithdrawBtn.addEventListener('click', withdrawFromShift);
+    if (shiftDepositBtn) shiftDepositBtn.addEventListener('click', depositToShift);
+    if (shiftCloseBtn) shiftCloseBtn.addEventListener('click', closeShift);
+    if (shiftCloseAmount) shiftCloseAmount.addEventListener('input', updateClosePreview);
+
     // Calculadora
     document.querySelectorAll('.calc-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -533,6 +547,14 @@ function setupEventListeners() {
     const clearDataBtn = document.getElementById('clear-data-btn');
     if (saveConfigBtn) saveConfigBtn.addEventListener('click', saveConfig);
     if (exportDataBtn) exportDataBtn.addEventListener('click', exportData);
+    
+    // Robustez
+    const exportCsvBtn = document.getElementById('export-csv-btn');
+    const viewAuditBtn = document.getElementById('view-audit-btn');
+    const restoreBackupBtn = document.getElementById('restore-backup-btn');
+    if (exportCsvBtn) exportCsvBtn.addEventListener('click', exportToCSV);
+    if (viewAuditBtn) viewAuditBtn.addEventListener('click', viewAuditLogs);
+    if (restoreBackupBtn) restoreBackupBtn.addEventListener('click', restoreFromBackup);
     if (clearDataBtn) clearDataBtn.addEventListener('click', () => {
         showConfirm('¿Eliminar TODOS los datos?', clearAllData);
     });
@@ -612,6 +634,7 @@ function loadModule(module) {
     const titles = {
         productos: '🧋 Productos', ventas: '💰 Ventas', inventario: '📦 Inventario',
         clientes: '👥 Clientes', deudas: '💳 Deudas / Créditos',
+        turnos: '📊 Turnos / Caja',
         bodega: '📦 Bodega / Ingredientes', catalogo: '🌐 Catálogo Web', config: '⚙️ Configuración'
     };
     const titleEl = document.getElementById('module-title');
@@ -627,6 +650,7 @@ function loadModule(module) {
         case 'inventario': loadInventory(); break;
         case 'clientes': loadClients(); break;
         case 'deudas': loadDebts(); break;
+        case 'turnos': loadShifts(); break;
         case 'bodega': loadIngredients(); loadRecipes(); loadSuppliers(); loadBatches(); break;
     }
 }
@@ -892,6 +916,9 @@ async function processCheckout() {
         }
 
         await dbAdd(STORE_SALES, { items, total, paymentMethod: currentPaymentMethod, date: new Date().toISOString(), timestamp: Date.now() });
+
+        // 🆕 Agregar venta al turno actual
+        if (typeof addSaleToShift === 'function') await addSaleToShift(total);
 
         cart = []; updateCartUI(); toggleCart();
         if (currentPaymentMethod === 'efectivo') showCalculator(total);

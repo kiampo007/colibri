@@ -44,6 +44,7 @@
                 <h2 id="module-title">🧋 Productos</h2>
             </div>
             <div class="header-right">
+                <div id="shift-badge" style="display:none;padding:6px 12px;background:rgba(0,212,170,0.2);border-radius:8px;font-size:12px;font-weight:600;color:var(--primary);margin-right:8px;white-space:nowrap;"></div>
                 <button id="notif-btn" class="icon-btn">🔔<span id="notif-count" class="badge">0</span></button>
                 <button id="cart-toggle-btn" class="icon-btn cart-icon">🛒<span id="cart-count" class="badge">0</span></button>
             </div>
@@ -62,6 +63,7 @@
                 <li data-module="inventario">📦 Inventario</li>
                 <li data-module="clientes">👥 Clientes</li>
                 <li data-module="deudas">💳 Deudas / Créditos</li>
+                <li data-module="turnos">📊 Turnos / Caja</li>
                 <li data-module="bodega">📦 Bodega / Ingredientes</li>
                 <li data-module="catalogo">🌐 Catálogo Web</li>
                 <li data-module="config">⚙️ Configuración</li>
@@ -124,7 +126,39 @@
                 <div id="debts-list" class="debts-list"></div>
             </section>
 
-            <!-- 🆕 MÓDULO BODEGA COMPLETA -->
+            <!-- 🆕 MÓDULO TURNOS / CAJA -->
+            <section id="module-turnos" class="module">
+                <div class="stats-row">
+                    <div class="stat-card">
+                        <span class="stat-value" id="shift-today-sales">$0</span>
+                        <span class="stat-label">Ventas Hoy</span>
+                    </div>
+                    <div class="stat-card warning">
+                        <span class="stat-value" id="shift-today-withdrawals">$0</span>
+                        <span class="stat-label">Retiros Hoy</span>
+                    </div>
+                    <div class="stat-card success">
+                        <span class="stat-value" id="shift-today-deposits">$0</span>
+                        <span class="stat-label">Ingresos Hoy</span>
+                    </div>
+                    <div class="stat-card" style="background:rgba(0,212,170,0.1);">
+                        <span class="stat-value" id="shift-current-balance">$0</span>
+                        <span class="stat-label">En Caja Ahora</span>
+                    </div>
+                </div>
+
+                <div class="shift-actions" style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+                    <button id="shift-action-open" class="btn-primary" onclick="openModal('shift-open-modal')">🟢 Abrir Turno</button>
+                    <button id="shift-action-withdraw" class="btn-secondary" onclick="openModal('shift-withdraw-modal')">💸 Retirar</button>
+                    <button id="shift-action-deposit" class="btn-secondary" onclick="openModal('shift-deposit-modal')">💰 Meter Plata</button>
+                    <button id="shift-action-close" class="btn-danger" onclick="prepareCloseShift()">🔴 Cerrar Turno</button>
+                </div>
+
+                <h3>📋 Historial de Turnos</h3>
+                <div id="shifts-list" class="shifts-list"></div>
+            </section>
+
+            <!-- MÓDULO BODEGA -->
             <section id="module-bodega" class="module">
                 <div class="stats-row">
                     <div class="stat-card"><span class="stat-value" id="bodega-total-value">$0</span><span class="stat-label">Valor Bodega</span></div>
@@ -228,7 +262,10 @@
                         <input type="number" id="config-tax" value="0" min="0" max="100">
                     </div>
                     <button id="save-config-btn" class="btn-primary">Guardar Configuración</button>
-                    <button id="export-data-btn" class="btn-secondary">📥 Exportar Datos</button>
+                    <button id="export-data-btn" class="btn-secondary">📥 Exportar Datos (JSON)</button>
+                    <button id="export-csv-btn" class="btn-secondary">📊 Exportar CSV (Excel)</button>
+                    <button id="view-audit-btn" class="btn-secondary">📋 Ver Auditoría</button>
+                    <button id="restore-backup-btn" class="btn-secondary">🔄 Restaurar Backup</button>
                     <button id="clear-data-btn" class="btn-danger">🗑️ Limpiar Todos los Datos</button>
                 </div>
             </section>
@@ -482,6 +519,94 @@
             </div>
         </div>
 
+        <!-- 🆕 MODAL ABRIR TURNO -->
+        <div id="shift-open-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header"><h3>🟢 Abrir Turno</h3><button class="close-modal">×</button></div>
+                <div class="modal-body">
+                    <div class="form-group"><label>¿Quién abre el turno? *</label><input type="text" id="shift-open-user" placeholder="Ej: María, Carlos, Reinaldo..."></div>
+                    <div class="form-group"><label>¿Cuánto hay en caja? *</label><input type="number" id="shift-open-amount" placeholder="0" min="0"></div>
+                    <div class="form-group"><label>Notas (opcional)</label><input type="text" id="shift-open-notes" placeholder="Ej: Caja con vuelto de ayer..."></div>
+                    <button id="shift-open-btn" class="btn-primary btn-full">🟢 ABRIR TURNO</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 🆕 MODAL RETIRAR DE CAJA -->
+        <div id="shift-withdraw-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header"><h3>💸 Retirar de Caja</h3><button class="close-modal">×</button></div>
+                <div class="modal-body">
+                    <div class="form-group"><label>Monto a retirar *</label><input type="number" id="shift-withdraw-amount" placeholder="0" min="0"></div>
+                    <div class="form-group"><label>Motivo *</label><select id="shift-withdraw-reason">
+                        <option value="Pago proveedor">🏭 Pago a proveedor</option>
+                        <option value="Delivery">🛵 Delivery / envío</option>
+                        <option value="Gasolina">⛽ Gasolina / transporte</option>
+                        <option value="Sueldo">👤 Pago de sueldo</option>
+                        <option value="Gastos local">🏠 Gastos del local (luz, agua, etc)</option>
+                        <option value="Personal">👤 Uso personal</option>
+                        <option value="Otro">🔧 Otro</option>
+                    </select></div>
+                    <div class="form-group"><label>Notas</label><input type="text" id="shift-withdraw-notes" placeholder="Detalle del retiro..."></div>
+                    <button id="shift-withdraw-btn" class="btn-danger btn-full">💸 RETIRAR</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 🆕 MODAL METER A CAJA -->
+        <div id="shift-deposit-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header"><h3>💰 Meter Plata a Caja</h3><button class="close-modal">×</button></div>
+                <div class="modal-body">
+                    <div class="form-group"><label>Monto a ingresar *</label><input type="number" id="shift-deposit-amount" placeholder="0" min="0"></div>
+                    <div class="form-group"><label>Motivo *</label><select id="shift-deposit-reason">
+                        <option value="Vuelto">💵 Para dar vueltos</option>
+                        <option value="Cambio">🔄 Cambio de billetes</option>
+                        <option value="Inversión">📈 Inversión / capital</option>
+                        <option value="Devolución">↩️ Devolución de retiro</option>
+                        <option value="Otro">🔧 Otro</option>
+                    </select></div>
+                    <div class="form-group"><label>Notas</label><input type="text" id="shift-deposit-notes" placeholder="Detalle del ingreso..."></div>
+                    <button id="shift-deposit-btn" class="btn-primary btn-full">💰 INGRESAR</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 🆕 MODAL CERRAR TURNO -->
+        <div id="shift-close-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header"><h3>🔴 Cerrar Turno</h3><button class="close-modal">×</button></div>
+                <div class="modal-body">
+                    <div style="padding:16px;background:var(--glass);border-radius:10px;margin-bottom:16px;">
+                        <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span>En caja debería haber:</span><strong id="shift-close-expected" style="color:var(--primary);">$0</strong></div>
+                        <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span>Ventas del turno:</span><span id="shift-close-sales">$0</span></div>
+                        <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span>Retiros:</span><span id="shift-close-withdrawals" style="color:#e74c3c;">$0</span></div>
+                        <div style="display:flex;justify-content:space-between;"><span>Ingresos extras:</span><span id="shift-close-deposits" style="color:var(--primary);">$0</span></div>
+                    </div>
+
+                    <div class="form-group"><label>¿Cuánto hay REALMENTE en caja? *</label><input type="number" id="shift-close-amount" placeholder="0" min="0"></div>
+                    <div id="shift-close-preview" style="margin-bottom:16px;"></div>
+
+                    <div id="shift-close-reason-div" style="display:none;">
+                        <div class="form-group"><label>¿Por qué no cuadra? *</label><select id="shift-close-reason">
+                            <option value="">Seleccionar...</option>
+                            <option value="Vuelto mal">💸 Di vuelto mal a un cliente</option>
+                            <option value="Billete falso">💵 Me dieron billete falso</option>
+                            <option value="Robo">🔒 Robo / hurto</option>
+                            <option value="Merma">🗑️ Merma no registrada</option>
+                            <option value="Retiro no registrado">💸 Retiré y no lo anoté</option>
+                            <option value="Error conteo">🧮 Me equivoqué contando</option>
+                            <option value="Otro">🔧 Otro motivo</option>
+                        </select></div>
+                    </div>
+
+                    <div class="form-group"><label>¿Quién cierra el turno? *</label><input type="text" id="shift-close-user" placeholder="Nombre..."></div>
+                    <div class="form-group"><label>Notas</label><input type="text" id="shift-close-notes" placeholder="Observaciones del cierre..."></div>
+                    <button id="shift-close-btn" class="btn-danger btn-full">🔴 CERRAR TURNO</button>
+                </div>
+            </div>
+        </div>
+
         <div id="notifications-modal" class="modal">
             <div class="modal-content">
                 <div class="modal-header"><h3>🔔 Notificaciones</h3><button class="close-modal">×</button></div>
@@ -504,6 +629,8 @@
         <div id="toast-container" class="toast-container"></div>
     </div>
 
+    <script src="robustez.js"></script>
+    <script src="shifts.js"></script>
     <script src="app.js"></script>
     <script>
         // Función para tabs de bodega
