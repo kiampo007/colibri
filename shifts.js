@@ -187,13 +187,29 @@ async function depositToShift() {
 }
 
 // ACTUALIZAR TURNO CON VENTA
-async function addSaleToShift(saleTotal) {
+async function addSaleToShift(saleTotal, amountPaid, paymentMethod) {
     try {
         if (!currentShift) return;
 
+        // Separar por método de pago
+        if (!currentShift.cashTotal) currentShift.cashTotal = 0;
+        if (!currentShift.cardTotal) currentShift.cardTotal = 0;
+        if (!currentShift.transferTotal) currentShift.transferTotal = 0;
+        if (!currentShift.creditTotal) currentShift.creditTotal = 0;
+
+        if (paymentMethod === 'efectivo') {
+            currentShift.cashTotal += (amountPaid || saleTotal);
+            currentShift.currentAmount += (amountPaid || saleTotal);
+        } else if (paymentMethod === 'tarjeta') {
+            currentShift.cardTotal += saleTotal;
+        } else if (paymentMethod === 'transferencia') {
+            currentShift.transferTotal += saleTotal;
+        } else if (paymentMethod === 'fiado') {
+            currentShift.creditTotal += saleTotal;
+        }
+
         currentShift.salesTotal += saleTotal;
-        currentShift.currentAmount += saleTotal;
-        currentShift.expectedAmount = currentShift.initialAmount + currentShift.salesTotal - currentShift.withdrawalsTotal + currentShift.depositsTotal;
+        currentShift.expectedAmount = currentShift.initialAmount + currentShift.cashTotal - currentShift.withdrawalsTotal + currentShift.depositsTotal;
 
         await dbPut(STORE_SHIFTS, currentShift);
         updateShiftUI();
@@ -239,7 +255,7 @@ async function closeShift() {
         await dbPut(STORE_SHIFTS, currentShift);
 
         await addAuditLog('shift_close', 
-            `Turno cerrado por ${user}. Esperado: ${formatMoney(currentShift.expectedAmount)}, Real: ${formatMoney(actualAmount)}, Diferencia: ${formatMoney(difference)}${discrepancyReason ? ' (' + discrepancyReason + ')' : ''}`
+            `Turno cerrado por ${user}. Efectivo: ${formatMoney(currentShift.cashTotal || 0)}, Tarjeta: ${formatMoney(currentShift.cardTotal || 0)}, Transf.: ${formatMoney(currentShift.transferTotal || 0)}, Fiado: ${formatMoney(currentShift.creditTotal || 0)}, Esperado: ${formatMoney(currentShift.expectedAmount)}, Real: ${formatMoney(actualAmount)}, Diferencia: ${formatMoney(difference)}${discrepancyReason ? ' (' + discrepancyReason + ')' : ''}`
         );
 
         if (isBalanced) {

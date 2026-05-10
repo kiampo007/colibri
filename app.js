@@ -61,7 +61,6 @@ async function initApp() {
     try {
         await loadConfig();
         await loadDemoData();
-        await syncAllClientDebts(); // Sincronizar deudas al iniciar
         setupEventListeners();
         loadModule('productos');
     } catch (error) {
@@ -916,10 +915,75 @@ async function processCheckout() {
             }
         }
 
-        await dbAdd(STORE_SALES, { items, total, paymentMethod: currentPaymentMethod, date: new Date().toISOString(), timestamp: Date.now() });
+        const subtotal = items.reduce((sum, item) => sum + (item.price * item.qty), 0);
+        let amountPaid = 0;
+        let change = 0;
+        let clientId = null;
+        let clientName = null;
+
+        if (currentPaymentMethod === 'efectivo') {
+            const received = prompt(`💵 Total: ${formatMoney(total)}\n¿Cuánto recibió el cliente?`) || total;
+            const receivedNum = parseFloat(received) || total;
+            amountPaid = receivedNum;
+            change = Math.max(0, receivedNum - total);
+            if (change > 0) showToast(`💰 Vuelto: ${formatMoney(change)}`, 'success');
+        } else if (currentPaymentMethod === 'tarjeta') {
+            amountPaid = total;
+            change = 0;
+            showToast(`💳 Tarjeta: ${formatMoney(total)}`, 'success');
+        } else if (currentPaymentMethod === 'transferencia') {
+            amountPaid = total;
+            change = 0;
+            showToast(`🔄 Transferencia: ${formatMoney(total)}`, 'success');
+        } else if (currentPaymentMethod === 'fiado') {
+            amountPaid = 0;
+            change = 0;
+            const clients = await dbGetAll(STORE_CLIENTS);
+            if (clients.length === 0) { showToast('❌ No hay clientes', 'error'); return; }
+            const clientPrompt = prompt(`Cliente para fiado:\n${clients.map((c, i) => `${i + 1}. ${c.name}`).join('\n')}\nNúmero:`);
+            const clientIndex = parseInt(clientPrompt) - 1;
+            if (clientIndex >= 0 && clientIndex < clients.length) {
+                const client = clients[clientIndex];
+                clientId = client.id;
+                clientName = client.name;
+                showToast(`📝 Fiado: ${client.name}`, 'success');
+            } else {
+                showToast('❌ Cliente inválido', 'error'); return;
+            }
+        }
+
+        // Guardar venta PRIMERO
+        const saleId = await dbAdd(STORE_SALES, { items, subtotal, total, amountPaid, change, paymentMethod: currentPaymentMethod, clientId, clientName, date: new Date().toISOString(), timestamp: Date.now() });
+
+        // Si es fiado, guardar deuda vinculada
+        let debtId = null;
+        if (currentPaymentMethod === 'fiado' && clientId) {
+            debtId = await dbAdd(STORE_DEBTS, {
+                clientId, clientName, saleId, amount: total, paid: 0, remaining: total,
+                installments: 1, status: 'pending', description: `Venta fiada: ${items.map(i => i.name).join(', ')}`,
+                dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                createdAt: new Date().toISOString()
+            });
+
+            // Actualizar venta con debtId
+            const sale = await dbGet(STORE_SALES, saleId);
+            if (sale) {
+                sale.debtId = debtId;
+                await dbPut(STORE_SALES, sale);
+            }
+
+            // Actualizar cliente
+            const client = await dbGet(STORE_CLIENTS, clientId);
+            if (client) {
+                client.totalDebt = (client.totalDebt || 0) + total;
+                client.totalPurchases = (client.totalPurchases || 0) + 1;
+                client.lastPurchase = new Date().toISOString();
+                await dbPut(STORE_CLIENTS, client);
+            }
+        }
 
         // 🆕 Agregar venta al turno actual
-        if (typeof addSaleToShift === 'function') await addSaleToShift(total);
+        if (typeof addSaleToShift === 'function') await addSaleToShift(total, amountPaid, currentPaymentMethod);
 
         cart = []; updateCartUI(); toggleCart();
         if (currentPaymentMethod === 'efectivo') showCalculator(total);
@@ -993,94 +1057,24 @@ async function loadSales() {
         }
 
         const icons = { efectivo: '💵', tarjeta: '💳', transferencia: '📱', fiado: '📝' };
+        // Precalcular fechas para evitar lag
+        const dateCache = new Map();
+        const formatDate = (dateStr) => {
+            if (dateCache.has(dateStr)) return dateCache.get(dateStr);
+            const d = new Date(dateStr);
+            const formatted = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+            dateCache.set(dateStr, formatted);
+            return formatted;
+        };
+
         list.innerHTML = sales.map(sale => {
-            const date = new Date(sale.date);
+            const dateStr = formatDate(sale.date);
             const isFiado = sale.paymentMethod === 'fiado';
-            return `<div class="list-item"><div class="list-icon">${icons[sale.paymentMethod] || '💰'}</div><div class="list-content"><div class="list-title">${sale.items.map(i => i.name).join(', ')} ${isFiado ? '<span style="background:rgba(255,217,61,0.2);color:var(--accent);padding:2px 6px;border-radius:8px;font-size:11px;">FIADO</span>' : ''}</div><div class="list-subtitle">${date.toLocaleDateString('es-CL')} ${date.toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'})} • ${sale.items.length} productos</div></div><div style="display:flex;align-items:center;gap:8px;"><div class="list-amount">${formatMoney(sale.total)}</div><button class="action-btn delete" onclick="deleteSale(${sale.id})" title="Eliminar venta">🗑️</button></div></div>`;
+            return `<div class="list-item"><div class="list-icon">${icons[sale.paymentMethod] || '💰'}</div><div class="list-content"><div class="list-title">${sale.items.map(i => i.name).join(', ')} ${isFiado ? '<span style="background:rgba(255,217,61,0.2);color:var(--accent);padding:2px 6px;border-radius:8px;font-size:11px;">FIADO</span>' : ''}</div><div class="list-subtitle">${dateStr} • ${sale.items.length} productos</div></div><div style="display:flex;align-items:center;gap:8px;"><div class="list-amount">${formatMoney(sale.total)}</div><button class="action-btn delete" onclick="deleteSale(${sale.id})" title="Eliminar venta">🗑️</button></div></div>`;
         }).join('');
     } catch (error) {
         console.error('❌ Error loadSales:', error);
     }
-}
-
-
-// ============== ELIMINAR VENTA CON RESTAURACIÓN ==============
-async function deleteSale(saleId) {
-    showConfirm('¿Eliminar esta venta? El stock será restaurado.', async () => {
-        try {
-            const sale = await dbGet(STORE_SALES, saleId);
-            if (!sale) { showToast('❌ Venta no encontrada', 'error'); return; }
-
-            // Restaurar stock de productos
-            if (sale.items && sale.items.length > 0) {
-                for (const item of sale.items) {
-                    if (item.productId) {
-                        const product = await dbGet(STORE_PRODUCTS, item.productId);
-                        if (product) {
-                            product.stock += item.qty;
-                            await dbPut(STORE_PRODUCTS, product);
-                        }
-                    }
-                }
-            }
-
-            // 🆕 INTERCONEXIÓN: Si era fiado, revertir deuda del cliente
-            if (sale.paymentMethod === 'fiado') {
-                const debts = await dbGetAll(STORE_DEBTS);
-                const saleDebt = debts.find(d => d.description && d.description.includes('Venta fiada') && d.amount === sale.total);
-                if (saleDebt) {
-                    // Revertir deuda del cliente
-                    const client = await dbGet(STORE_CLIENTS, saleDebt.clientId);
-                    if (client) {
-                        client.totalDebt = Math.max(0, (client.totalDebt || 0) - saleDebt.remaining);
-                        client.totalPurchases = Math.max(0, (client.totalPurchases || 0) - 1);
-                        await dbPut(STORE_CLIENTS, client);
-                    }
-                    // Eliminar la deuda asociada
-                    await dbDelete(STORE_DEBTS, saleDebt.id);
-                    // Eliminar pagos asociados
-                    const payments = await dbGetAll(STORE_PAYMENTS);
-                    for (const p of payments.filter(p => p.debtId === saleDebt.id)) {
-                        await dbDelete(STORE_PAYMENTS, p.id);
-                    }
-                }
-            }
-
-            // 🆕 INTERCONEXIÓN: Restaurar stock de bodega (ingredientes)
-            const recipes = await dbGetAll(STORE_RECIPES);
-            const ingredients = await dbGetAll(STORE_INGREDIENTS);
-            if (sale.items) {
-                for (const item of sale.items) {
-                    const recipe = recipes.find(r => r.productId === item.productId);
-                    if (recipe && recipe.items) {
-                        for (const recipeItem of recipe.items) {
-                            const ingredient = ingredients.find(i => i.id === recipeItem.ingredientId);
-                            if (ingredient) {
-                                ingredient.stock += recipeItem.amount * item.qty;
-                                await dbPut(STORE_INGREDIENTS, ingredient);
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Eliminar la venta
-            await dbDelete(STORE_SALES, saleId);
-
-            await addAuditLog('delete_sale', `Venta eliminada: ${formatMoney(sale.total)} - ${sale.paymentMethod}`);
-            showToast('🗑️ Venta eliminada - Stock restaurado', 'success');
-
-            if (currentModule === 'ventas') loadSales();
-            if (currentModule === 'productos') loadProducts();
-            if (currentModule === 'inventario') loadInventory();
-            if (currentModule === 'clientes') loadClients();
-            if (currentModule === 'deudas') loadDebts();
-            if (currentModule === 'bodega') loadIngredients();
-        } catch (error) {
-            console.error('❌ Error deleteSale:', error);
-            showToast('❌ Error al eliminar venta', 'error');
-        }
-    });
 }
 
 // ============== INVENTARIO ==============
@@ -1148,16 +1142,13 @@ async function loadClients(search = '') {
             return;
         }
 
-        list.innerHTML = filtered.map(c => {
-            const debtBadge = c.totalDebt > 0 ? `<span style="background:rgba(231,76,60,0.2);color:#e74c3c;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;margin-left:8px;">💳 ${formatMoney(c.totalDebt)}</span>` : '';
-            const purchaseBadge = c.totalPurchases > 0 ? `<span style="background:rgba(0,212,170,0.2);color:var(--primary);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;margin-left:4px;">🛒 ${c.totalPurchases}</span>` : '';
-            return `
+        list.innerHTML = filtered.map(c => `
             <div class="list-item">
                 <div class="list-icon">👤</div>
-                <div class="list-content"><div class="list-title">${c.name}${debtBadge}${purchaseBadge}</div><div class="list-subtitle">${c.phone || 'Sin teléfono'} • ${c.email || 'Sin email'}${c.lastPurchase ? ' • Última: ' + new Date(c.lastPurchase).toLocaleDateString('es-CL') : ''}</div></div>
+                <div class="list-content"><div class="list-title">${c.name}</div><div class="list-subtitle">${c.phone || 'Sin teléfono'} • ${c.email || 'Sin email'}</div></div>
                 <div class="list-actions"><button class="action-btn edit" onclick="editClient(${c.id})">✏️</button><button class="action-btn delete" onclick="deleteClient(${c.id})">🗑️</button></div>
             </div>
-        `}).join('');
+        `).join('');
     } catch (error) {
         console.error('❌ Error loadClients:', error);
     }
@@ -1355,13 +1346,6 @@ async function saveDebt() {
             createdAt: new Date().toISOString()
         };
         await dbAdd(STORE_DEBTS, debt);
-
-        // 🆕 INTERCONEXIÓN: Actualizar totalDebt del cliente
-        if (client) {
-            client.totalDebt = (client.totalDebt || 0) + amount;
-            await dbPut(STORE_CLIENTS, client);
-            console.log(`✅ Cliente ${client.name} - Deuda aumentada a: ${formatMoney(client.totalDebt)}`);
-        }
         showToast('✅ Deuda registrada', 'success');
         closeModal('debt-modal');
         loadDebts();
@@ -1402,26 +1386,9 @@ async function savePayment() {
         debt.remaining = Math.max(0, debt.amount - debt.paid);
         if (debt.remaining <= 0) debt.status = 'paid';
         await dbPut(STORE_DEBTS, debt);
-
-        // 🆕 INTERCONEXIÓN: Actualizar totalDebt del cliente
-        if (debt.clientId) {
-            const client = await dbGet(STORE_CLIENTS, debt.clientId);
-            if (client) {
-                // Recalcular deuda total del cliente sumando todas sus deudas activas
-                const allDebts = await dbGetAll(STORE_DEBTS);
-                const clientDebts = allDebts.filter(d => d.clientId === client.id && d.status !== 'paid');
-                const totalDebt = clientDebts.reduce((sum, d) => sum + (d.remaining || 0), 0);
-                client.totalDebt = totalDebt;
-                client.lastPayment = new Date().toISOString();
-                await dbPut(STORE_CLIENTS, client);
-                console.log(`✅ Cliente ${client.name} - Deuda actualizada: ${formatMoney(totalDebt)}`);
-            }
-        }
-
         showToast(`✅ Pago: ${formatMoney(amount)}`, 'success');
         closeModal('payment-modal');
         loadDebts();
-        if (currentModule === 'clientes') loadClients(); // Refrescar clientes si estamos ahí
     } catch (error) {
         console.error('❌ Error savePayment:', error);
         showToast('❌ Error al registrar pago', 'error');
@@ -2636,42 +2603,6 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js')
         .then(reg => console.log('✅ Service Worker registrado'))
         .catch(err => console.log('❌ Error SW:', err));
-}
-
-
-// ============== SINCRONIZAR DEUDA DE CLIENTE ==============
-async function syncClientDebt(clientId) {
-    try {
-        const client = await dbGet(STORE_CLIENTS, clientId);
-        if (!client) return;
-
-        const allDebts = await dbGetAll(STORE_DEBTS);
-        const clientDebts = allDebts.filter(d => d.clientId === clientId && d.status !== 'paid');
-        const totalDebt = clientDebts.reduce((sum, d) => sum + (d.remaining || 0), 0);
-        const totalPaid = allDebts.filter(d => d.clientId === clientId && d.status === 'paid').reduce((sum, d) => sum + (d.amount || 0), 0);
-
-        client.totalDebt = totalDebt;
-        client.totalPaid = totalPaid;
-        await dbPut(STORE_CLIENTS, client);
-
-        console.log(`🔄 Sync ${client.name}: Deuda=${formatMoney(totalDebt)}, Pagado=${formatMoney(totalPaid)}`);
-        return { totalDebt, totalPaid };
-    } catch (error) {
-        console.error('❌ Error syncClientDebt:', error);
-    }
-}
-
-// Sincronizar todas las deudas al iniciar
-async function syncAllClientDebts() {
-    try {
-        const clients = await dbGetAll(STORE_CLIENTS);
-        for (const client of clients) {
-            await syncClientDebt(client.id);
-        }
-        console.log('✅ Todas las deudas sincronizadas');
-    } catch (error) {
-        console.error('❌ Error syncAllClientDebts:', error);
-    }
 }
 
 console.log('✅ Colibrí Boba Tea v4.1 cargado completamente');
