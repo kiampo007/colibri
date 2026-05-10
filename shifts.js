@@ -82,6 +82,10 @@ async function openShift() {
             salesTotal: 0,
             withdrawalsTotal: 0,
             depositsTotal: 0,
+            cashTotal: 0,
+            cardTotal: 0,
+            transferTotal: 0,
+            creditTotal: 0,
             expectedAmount: initialAmount,
             status: 'open',
             openedAt: Date.now(),
@@ -191,11 +195,11 @@ async function addSaleToShift(saleTotal, amountPaid, paymentMethod) {
     try {
         if (!currentShift) return;
 
-        // Separar por método de pago
-        if (!currentShift.cashTotal) currentShift.cashTotal = 0;
-        if (!currentShift.cardTotal) currentShift.cardTotal = 0;
-        if (!currentShift.transferTotal) currentShift.transferTotal = 0;
-        if (!currentShift.creditTotal) currentShift.creditTotal = 0;
+        // Separar por método de pago - FIX #3: Inicializar solo una vez
+        if (currentShift.cashTotal === undefined) currentShift.cashTotal = 0;
+        if (currentShift.cardTotal === undefined) currentShift.cardTotal = 0;
+        if (currentShift.transferTotal === undefined) currentShift.transferTotal = 0;
+        if (currentShift.creditTotal === undefined) currentShift.creditTotal = 0;
 
         if (paymentMethod === 'efectivo') {
             currentShift.cashTotal += (amountPaid || saleTotal);
