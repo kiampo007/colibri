@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#00d4aa">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>🌸 Colibrí Boba Tea v4.0</title>
+    <title>🌸 Colibrí Boba Tea v5.1 Ultra Pro</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3081/3081840.png">
@@ -29,7 +29,7 @@
         <div class="splash-content">
             <div class="colibri-logo">🌸</div>
             <h1>Colibrí Boba Tea</h1>
-            <p>v4.1 - Sistema POS Profesional</p>
+            <p>v5.1 Ultra Pro - Sistema POS Máximo Nivel</p>
             <div class="loading-bar"><div class="loading-progress"></div></div>
         </div>
     </div>
@@ -70,7 +70,7 @@
             </ul>
             <div class="sidebar-footer">
                 <p>© 2026 Colibrí Boba Tea</p>
-                <p class="version">v4.1 Pro + Bodega</p>
+                <p class="version">v5.1 Ultra Pro + Turnos + Bodega + Recetas</p>
             </div>
         </nav>
         <div id="sidebar-overlay" class="sidebar-overlay"></div>
@@ -629,26 +629,8 @@
         <div id="toast-container" class="toast-container"></div>
     </div>
 
-    <script src="robustez.js"></script>
-    <script src="shifts.js"></script>
     <script src="app.js"></script>
     <script>
-        // Función para tabs de bodega
-        function showBodegaTab(tab) {
-            document.querySelectorAll('.bodega-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.bodega-tab-content').forEach(c => c.classList.remove('active'));
-
-            event.target.classList.add('active');
-            document.getElementById(`bodega-${tab}-tab`).classList.add('active');
-
-            // Cargar datos específicos del tab
-            if (tab === 'purchases' && typeof loadPurchases === 'function') loadPurchases();
-            if (tab === 'waste' && typeof loadWaste === 'function') loadWaste();
-            if (tab === 'suppliers' && typeof loadSuppliers === 'function') loadSuppliers();
-            if (tab === 'batches' && typeof loadBatches === 'function') loadBatches();
-            if (tab === 'reports' && typeof loadBodegaReports === 'function') loadBodegaReports();
-        }
-
         // 🛡️ SEGURIDAD: Si algo falla, mostrar app después de 5 segundos máximo
         setTimeout(() => {
             const splash = document.getElementById('splash-screen');

@@ -1,7 +1,7 @@
 {
-  "name": "Colibrí Boba Tea POS v2.0",
-  "short_name": "Colibrí POS",
-  "description": "Sistema POS profesional para Colibrí Boba Tea",
+  "name": "Colibrí Boba Tea POS v5.0 Ultra Pro",
+  "short_name": "Colibrí POS Pro",
+  "description": "Sistema POS Ultra Pro para Colibrí Boba Tea - Turnos, Bodega, Recetas, Lotes",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#1a1a2e",
@@ -15,7 +15,11 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["business", "finance", "food"],
+  "categories": [
+    "business",
+    "finance",
+    "food"
+  ],
   "lang": "es",
   "dir": "ltr"
 }

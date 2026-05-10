@@ -17,6 +17,8 @@ const STORE_PURCHASES = 'purchases';
 const STORE_WASTE = 'waste';
 const STORE_SUPPLIERS = 'suppliers';
 const STORE_BATCHES = 'batches';
+const STORE_SHIFTS = 'shifts';  // 🆕 Declarado para evitar dependencia cruzada
+const STORE_SHIFT_MOVEMENTS = 'shift_movements';
 
 const DEMO_IMAGES = {
     bubble_tea: ['https://images.unsplash.com/photo-1558855410-3112e3d2bb30?w=400&h=400&fit=crop','https://images.unsplash.com/photo-1546173159-315724a31696?w=400&h=400&fit=crop','https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400&h=400&fit=crop'],
@@ -27,6 +29,8 @@ const DEMO_IMAGES = {
     logo: 'https://cdn-icons-png.flaticon.com/512/3081/3081840.png'
 };
 
+let salesPage = 1;
+const SALES_PER_PAGE = 50;
 let db = null;
 let cart = [];
 let currentModule = 'productos';
@@ -35,6 +39,7 @@ let deleteCallback = null;
 let recipeItems = [];
 let purchaseItems = [];
 let useLocalStorageFallback = false;
+let currentShift = null;  // 🆕 Declaración explícita para turnos
 
 // ============== INICIALIZACIÓN CON FALLBACK ==============
 document.addEventListener('DOMContentLoaded', () => {
@@ -44,28 +49,57 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initApp() {
     const splash = document.getElementById('splash-screen');
-    const app = document.getElementById('app');
+    const appEl = document.getElementById('app');
+    let initErrors = [];
 
     try {
-        // Intentar abrir IndexedDB
         db = await initDB();
         console.log('✅ IndexedDB inicializada correctamente');
     } catch (error) {
         console.error('❌ Error IndexedDB:', error);
-        // Fallback: usar localStorage si IndexedDB falla
         useLocalStorageFallback = true;
         console.log('⚠️ Usando localStorage como fallback');
         showToast('Modo fallback activado (sin base de datos)', 'warning');
+        initErrors.push('IndexedDB');
     }
 
     try {
         await loadConfig();
+    } catch (error) {
+        console.error('❌ Error loadConfig:', error);
+        initErrors.push('Config');
+    }
+
+    try {
         await loadDemoData();
+    } catch (error) {
+        console.error('❌ Error loadDemoData:', error);
+        initErrors.push('DemoData');
+    }
+
+    try {
         setupEventListeners();
+    } catch (error) {
+        console.error('❌ Error setupEventListeners:', error);
+        initErrors.push('EventListeners');
+    }
+
+    try {
+        await checkCurrentShift();
+    } catch (error) {
+        console.error('❌ Error checkCurrentShift:', error);
+        initErrors.push('Turnos');
+    }
+
+    try {
         loadModule('productos');
     } catch (error) {
-        console.error('❌ Error cargando datos:', error);
-        showToast('Error al cargar datos iniciales', 'error');
+        console.error('❌ Error loadModule:', error);
+        initErrors.push('Module');
+    }
+
+    if (initErrors.length > 0) {
+        console.warn(`⚠️ Errores de inicialización: ${initErrors.join(', ')}`);
     }
 
     // SIEMPRE ocultar splash, incluso si hay errores
@@ -151,8 +185,18 @@ function initDB() {
                 bs.createIndex('ingredientId', 'ingredientId', { unique: false });
                 bs.createIndex('expiryDate', 'expiryDate', { unique: false });
             }
-            // 🆕 Stores de turnos
-            if (typeof initShiftStores === 'function') initShiftStores(database);
+            // 🆕 Stores de turnos (inline - no depende de shifts.js)
+            if (!database.objectStoreNames.contains('shifts')) {
+                const ss = database.createObjectStore('shifts', { keyPath: 'id', autoIncrement: true });
+                ss.createIndex('date', 'date', { unique: false });
+                ss.createIndex('status', 'status', { unique: false });
+                ss.createIndex('user', 'user', { unique: false });
+            }
+            if (!database.objectStoreNames.contains('shift_movements')) {
+                const sm = database.createObjectStore('shift_movements', { keyPath: 'id', autoIncrement: true });
+                sm.createIndex('shiftId', 'shiftId', { unique: false });
+                sm.createIndex('type', 'type', { unique: false });
+            }
             console.log(`🔄 BD migrada: v${oldVersion} → v${DB_VERSION}`);
         };
 
@@ -164,10 +208,12 @@ function initDB() {
 }
 
 // ============== OPERACIONES DB CON FALLBACK ==============
+let _fallbackIdCounter = 0;
 async function dbAdd(store, data) {
     if (useLocalStorageFallback) {
         const items = JSON.parse(localStorage.getItem(store) || '[]');
-        data.id = Date.now() + Math.random();
+        _fallbackIdCounter++;
+        data.id = Date.now() * 10000 + (_fallbackIdCounter % 10000) * 10 + Math.floor(Math.random() * 10);
         items.push(data);
         localStorage.setItem(store, JSON.stringify(items));
         return data.id;
@@ -401,7 +447,13 @@ async function loadConfig() {
 }
 
 // ============== EVENT LISTENERS ==============
+let _listenersInitialized = false;
 function setupEventListeners() {
+    if (_listenersInitialized) {
+        console.log('⚠️ Listeners ya inicializados, omitiendo');
+        return;
+    }
+    _listenersInitialized = true;
     // Menú
     const menuBtn = document.getElementById('menu-btn');
     const closeSidebarBtn = document.getElementById('close-sidebar');
@@ -559,12 +611,16 @@ function setupEventListeners() {
         showConfirm('¿Eliminar TODOS los datos?', clearAllData);
     });
 
-    // Métodos de pago
+    // Métodos de pago - CORREGIDO: mapeo explícito
     document.querySelectorAll('.payment-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.payment-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            currentPaymentMethod = btn.id.replace('pay-', '');
+            const id = btn.id;
+            if (id === 'pay-cash') currentPaymentMethod = 'efectivo';
+            else if (id === 'pay-card') currentPaymentMethod = 'tarjeta';
+            else if (id === 'pay-transfer') currentPaymentMethod = 'transferencia';
+            else if (id === 'pay-credit') currentPaymentMethod = 'fiado';
         });
     });
 
@@ -650,8 +706,16 @@ function loadModule(module) {
         case 'inventario': loadInventory(); break;
         case 'clientes': loadClients(); break;
         case 'deudas': loadDebts(); break;
-        case 'turnos': loadShifts(); break;
-        case 'bodega': loadIngredients(); loadRecipes(); loadSuppliers(); loadBatches(); break;
+        case 'turnos': loadShifts(); updateShiftStats(); break;
+        case 'bodega':
+            loadIngredients();
+            loadRecipes();
+            loadPurchases();
+            loadWaste();
+            loadSuppliers();
+            loadBatches();
+            loadBodegaReports();
+            break;
     }
 }
 
@@ -743,6 +807,11 @@ async function saveProduct() {
     try {
         const id = document.getElementById('product-id').value;
         const name = document.getElementById('product-name').value.trim();
+        let originalName = '';
+        if (id) {
+            const existingProduct = await dbGet(STORE_PRODUCTS, parseInt(id));
+            originalName = existingProduct ? existingProduct.name : '';
+        }
         const price = parseFloat(document.getElementById('product-price').value);
         const cost = parseFloat(document.getElementById('product-cost').value) || 0;
         const stock = parseInt(document.getElementById('product-stock').value) || 0;
@@ -766,6 +835,21 @@ async function saveProduct() {
         closeModal('product-modal');
         loadProducts();
         if (currentModule === 'inventario') loadInventory();
+
+        // 🆕 ACTUALIZAR RECETAS VINCULADAS si cambió el nombre
+        if (id && originalName && originalName !== name) {
+            const recipes = await dbGetAll(STORE_RECIPES);
+            for (const recipe of recipes) {
+                if (recipe.productId === parseInt(id)) {
+                    recipe.name = name;
+                    await dbPut(STORE_RECIPES, recipe);
+                }
+            }
+            if (currentModule === 'bodega') {
+                loadRecipes();
+                loadBodegaReports();
+            }
+        }
     } catch (error) {
         console.error('❌ Error saveProduct:', error);
         showToast('❌ Error al guardar producto', 'error');
@@ -868,6 +952,10 @@ async function processCheckout() {
         for (const cartItem of cart) {
             const product = products.find(p => p.id === cartItem.id);
             if (!product) continue;
+            if (product.stock < cartItem.qty) {
+                showToast(`❌ Sin stock: ${product.name} (disponible: ${product.stock}, necesita: ${cartItem.qty})`, 'error');
+                return;
+            }
 
             const itemTotal = product.price * cartItem.qty;
             total += itemTotal;
@@ -895,24 +983,6 @@ async function processCheckout() {
 
         for (const ingredient of bodegaUpdates) {
             await dbPut(STORE_INGREDIENTS, ingredient);
-        }
-
-        // Fiado
-        if (currentPaymentMethod === 'fiado') {
-            const clients = await dbGetAll(STORE_CLIENTS);
-            if (clients.length === 0) { showToast('❌ No hay clientes', 'error'); return; }
-            const clientName = prompt(`Cliente para fiado:\n${clients.map((c, i) => `${i + 1}. ${c.name}`).join('\n')}\nNúmero:`);
-            const clientIndex = parseInt(clientName) - 1;
-            if (clientIndex >= 0 && clientIndex < clients.length) {
-                const client = clients[clientIndex];
-                await dbAdd(STORE_DEBTS, {
-                    clientId: client.id, clientName: client.name, amount: total, paid: 0, remaining: total,
-                    installments: 1, status: 'pending', description: `Venta fiada: ${items.map(i => i.name).join(', ')}`,
-                    dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                    createdAt: new Date().toISOString()
-                });
-                showToast(`📝 Fiado: ${client.name}`, 'success');
-            }
         }
 
         const subtotal = items.reduce((sum, item) => sum + (item.price * item.qty), 0);
@@ -1023,9 +1093,10 @@ function calculateChange() {
 }
 
 // ============== VENTAS ==============
-async function loadSales() {
+async function loadSales(page = 1) {
     try {
-        const sales = await dbGetAll(STORE_SALES);
+        salesPage = page;
+        const allSales = await dbGetAll(STORE_SALES);
         const list = document.getElementById('sales-list');
         if (!list) return;
 
@@ -1035,11 +1106,14 @@ async function loadSales() {
         const monthAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
 
         let todayTotal = 0, weekTotal = 0, monthTotal = 0;
-        sales.forEach(sale => {
+        allSales.forEach(sale => {
+            if (!sale.date || !sale.total) return;
             const saleDate = new Date(sale.date);
-            if (sale.date.startsWith(today)) todayTotal += sale.total;
-            if (saleDate >= weekAgo) weekTotal += sale.total;
-            if (saleDate >= monthAgo) monthTotal += sale.total;
+            if (isNaN(saleDate.getTime())) return;
+            const saleDateStr = saleDate.toISOString().split('T')[0];
+            if (saleDateStr === today) todayTotal += (sale.total || 0);
+            if (saleDate >= weekAgo) weekTotal += (sale.total || 0);
+            if (saleDate >= monthAgo) monthTotal += (sale.total || 0);
         });
 
         const todayEl = document.getElementById('today-sales');
@@ -1049,15 +1123,18 @@ async function loadSales() {
         if (weekEl) weekEl.textContent = formatMoney(weekTotal);
         if (monthEl) monthEl.textContent = formatMoney(monthTotal);
 
-        sales.sort((a, b) => b.timestamp - a.timestamp);
+        allSales.sort((a, b) => b.timestamp - a.timestamp);
 
-        if (sales.length === 0) {
+        if (allSales.length === 0) {
             list.innerHTML = `<div class="empty-state"><div class="empty-state-icon">💰</div><p class="empty-state-text">No hay ventas</p></div>`;
             return;
         }
 
+        const totalPages = Math.ceil(allSales.length / SALES_PER_PAGE);
+        const start = (page - 1) * SALES_PER_PAGE;
+        const sales = allSales.slice(start, start + SALES_PER_PAGE);
+
         const icons = { efectivo: '💵', tarjeta: '💳', transferencia: '📱', fiado: '📝' };
-        // Precalcular fechas para evitar lag
         const dateCache = new Map();
         const formatDate = (dateStr) => {
             if (dateCache.has(dateStr)) return dateCache.get(dateStr);
@@ -1067,17 +1144,26 @@ async function loadSales() {
             return formatted;
         };
 
-        list.innerHTML = sales.map(sale => {
+        let html = sales.map(sale => {
             const dateStr = formatDate(sale.date);
             const isFiado = sale.paymentMethod === 'fiado';
             return `<div class="list-item"><div class="list-icon">${icons[sale.paymentMethod] || '💰'}</div><div class="list-content"><div class="list-title">${sale.items.map(i => i.name).join(', ')} ${isFiado ? '<span style="background:rgba(255,217,61,0.2);color:var(--accent);padding:2px 6px;border-radius:8px;font-size:11px;">FIADO</span>' : ''}</div><div class="list-subtitle">${dateStr} • ${sale.items.length} productos</div></div><div style="display:flex;align-items:center;gap:8px;"><div class="list-amount">${formatMoney(sale.total)}</div><button class="action-btn delete" onclick="deleteSale(${sale.id})" title="Eliminar venta">🗑️</button></div></div>`;
         }).join('');
+
+        if (totalPages > 1) {
+            html += `<div style="display:flex;justify-content:center;gap:8px;margin-top:16px;">`;
+            if (page > 1) html += `<button class="btn-secondary" onclick="loadSales(${page - 1})">← Anterior</button>`;
+            html += `<span style="padding:10px;color:rgba(255,255,255,0.6);">Página ${page} de ${totalPages}</span>`;
+            if (page < totalPages) html += `<button class="btn-secondary" onclick="loadSales(${page + 1})">Siguiente →</button>`;
+            html += `</div>`;
+        }
+
+        list.innerHTML = html;
     } catch (error) {
         console.error('❌ Error loadSales:', error);
     }
 }
 
-// ============== INVENTARIO ==============
 async function loadInventory(search = '') {
     try {
         const products = await dbGetAll(STORE_PRODUCTS);
@@ -1115,14 +1201,34 @@ async function editProduct(id) {
 }
 
 async function deleteProduct(id) {
-    showConfirm('¿Eliminar producto?', async () => {
+    // 🆕 VERIFICAR RECETAS ASOCIADAS
+    const recipes = await dbGetAll(STORE_RECIPES);
+    const linkedRecipes = recipes.filter(r => r.productId === id);
+
+    let confirmMessage = '¿Eliminar producto?';
+    if (linkedRecipes.length > 0) {
+        confirmMessage = `⚠️ Este producto tiene ${linkedRecipes.length} receta(s) asociada(s).\n¿Eliminar producto Y sus recetas?`;
+    }
+
+    showConfirm(confirmMessage, async () => {
         try {
+            // 🆕 ELIMINAR RECETAS VINCULADAS PRIMERO
+            if (linkedRecipes.length > 0) {
+                for (const recipe of linkedRecipes) {
+                    await dbDelete(STORE_RECIPES, recipe.id);
+                }
+            }
             await dbDelete(STORE_PRODUCTS, id);
-            showToast('🗑️ Producto eliminado', 'success');
+            showToast('🗑️ Producto y recetas eliminados', 'success');
             loadInventory();
             if (currentModule === 'productos') loadProducts();
+            if (currentModule === 'bodega') {
+                loadRecipes();
+                loadBodegaReports();
+            }
         } catch (error) {
             console.error('❌ Error deleteProduct:', error);
+            showToast('❌ Error al eliminar producto', 'error');
         }
     });
 }
@@ -1956,6 +2062,10 @@ async function savePurchase() {
         // Actualizar stock y costo promedio
         for (const item of items) {
             const ingredient = await dbGet(STORE_INGREDIENTS, item.ingredientId);
+            if (!ingredient) {
+                showToast(`❌ Ingrediente #${item.ingredientId} no encontrado`, 'error');
+                continue;
+            }
             if (ingredient) {
                 const oldTotalValue = ingredient.stock * ingredient.cost;
                 const newTotalValue = item.quantity * item.cost;
@@ -2073,7 +2183,10 @@ async function saveWaste() {
         const ingredient = await dbGet(STORE_INGREDIENTS, ingredientId);
         if (!ingredient) { showToast('❌ Ingrediente no encontrado', 'error'); return; }
 
-        if (ingredient.stock < quantity) { showToast(`❌ Stock insuficiente: solo ${ingredient.stock} ${ingredient.unit}`, 'error'); return; }
+        if (ingredient.stock < quantity) { 
+            showToast(`❌ Stock insuficiente de ${ingredient.name}: tienes ${ingredient.stock} ${ingredient.unit}, intentas sacar ${quantity} ${ingredient.unit}`, 'error'); 
+            return; 
+        }
 
         const cost = quantity * ingredient.cost;
         ingredient.stock -= quantity;
@@ -2242,7 +2355,13 @@ async function loadBatches() {
 
         list.innerHTML = batches.map(batch => {
             const ingredient = ingredients.find(i => i.id === batch.ingredientId);
-            const expiryDate = new Date(batch.expiryDate);
+            let expiryDate;
+            try {
+                expiryDate = new Date(batch.expiryDate);
+                if (isNaN(expiryDate.getTime())) throw new Error('Fecha inválida');
+            } catch (e) {
+                return `<div class="list-item"><div class="list-icon">📅</div><div class="list-content"><div class="list-title">${ingredient ? ingredient.name : 'Desconocido'} <span class="debt-status overdue">FECHA INVÁLIDA</span></div><div class="list-subtitle">Lote: ${batch.batchNumber || 'N/A'}</div></div></div>`;
+            }
             const daysUntilExpiry = Math.ceil((expiryDate - now) / (1000 * 60 * 60 * 24));
             const isExpired = daysUntilExpiry < 0;
             const isExpiringSoon = daysUntilExpiry >= 0 && daysUntilExpiry <= 7;
@@ -2493,17 +2612,28 @@ function parseMoney(str) {
 function showToast(message, type = 'success') {
     try {
         const container = document.getElementById('toast-container');
-        if (!container) return;
+        if (!container) {
+            console.log('Toast (no container):', message);
+            return;
+        }
         const toast = document.createElement('div');
         toast.className = `toast ${type}`;
         toast.textContent = message;
+        toast.style.pointerEvents = 'auto';
         container.appendChild(toast);
-        setTimeout(() => {
-            toast.style.animation = 'toastOut 0.3s ease forwards';
-            setTimeout(() => toast.remove(), 300);
-        }, 2700);
+
+        const removeToast = () => {
+            if (toast.parentNode) {
+                toast.style.animation = 'toastOut 0.3s ease forwards';
+                setTimeout(() => {
+                    if (toast.parentNode) toast.remove();
+                }, 300);
+            }
+        };
+
+        setTimeout(removeToast, 2700);
     } catch (error) {
-        console.log('Toast:', message);
+        console.log('Toast error:', message, error);
     }
 }
 
@@ -2605,4 +2735,669 @@ if ('serviceWorker' in navigator) {
         .catch(err => console.log('❌ Error SW:', err));
 }
 
+
+// ============== CATÁLOGO WEB ==============
+async function loadCatalogPreview() {
+    try {
+        const products = await dbGetAll(STORE_PRODUCTS);
+        const container = document.querySelector('.catalog-preview');
+        if (!container) return;
+        const existing = container.querySelector('.catalog-grid');
+        if (existing) existing.remove();
+
+        if (products.length === 0) {
+            const grid = document.createElement('div');
+            grid.className = 'catalog-grid';
+            grid.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🌐</div><p class="empty-state-text">No hay productos para mostrar</p></div>`;
+            container.appendChild(grid);
+            return;
+        }
+
+        const emojis = { 'bubble-tea': '🧋', 'smoothie': '🥤', 'coffee': '☕', 'postre': '🍰', 'otro': '📦' };
+        let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-top:16px;">';
+        products.forEach(p => {
+            html += `
+                <div style="background:var(--glass);border-radius:12px;padding:12px;text-align:center;border:1px solid var(--glass-border);">
+                    <div style="font-size:40px;margin-bottom:8px;">${p.image ? `<img src="${p.image}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;">` : emojis[p.category] || '📦'}</div>
+                    <div style="font-weight:600;font-size:14px;margin-bottom:4px;">${p.name}</div>
+                    <div style="color:var(--primary);font-weight:700;">${formatMoney(p.price)}</div>
+                    <div style="font-size:12px;color:rgba(255,255,255,0.5);">${p.stock > 0 ? '✅ Disponible' : '❌ Agotado'}</div>
+                </div>`;
+        });
+        html += '</div>';
+        const grid = document.createElement('div');
+        grid.className = 'catalog-grid';
+        grid.innerHTML = html;
+        container.appendChild(grid);
+    } catch (error) {
+        console.error('❌ Error loadCatalogPreview:', error);
+    }
+}
+
+function previewCatalog() {
+    loadCatalogPreview();
+    showToast('🌐 Catálogo actualizado', 'success');
+}
+
+// ============== TABS BODEGA ==============
+function showBodegaTab(tab) {
+    document.querySelectorAll('.bodega-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.bodega-tab-content').forEach(c => c.classList.remove('active'));
+    const clicked = event.target;
+    clicked.classList.add('active');
+    const tabContent = document.getElementById(`bodega-${tab}-tab`);
+    if (tabContent) tabContent.classList.add('active');
+    if (tab === 'purchases') loadPurchases();
+    if (tab === 'waste') loadWaste();
+    if (tab === 'suppliers') loadSuppliers();
+    if (tab === 'batches') loadBatches();
+    if (tab === 'reports') loadBodegaReports();
+}
+
+
+
+// ============== TURNOS / CAJA (Consolidado desde shifts.js) ==============
+
+async function checkCurrentShift() {
+    try {
+        const shifts = await dbGetAll(STORE_SHIFTS);
+        currentShift = shifts.find(s => s.status === 'open');
+
+        if (currentShift) {
+            // Verificar si lleva más de 12 horas abierto
+            const hoursOpen = (Date.now() - currentShift.openedAt) / (1000 * 60 * 60);
+            if (hoursOpen > 12) {
+                showToast(`⚠️ Turno abierto hace ${Math.floor(hoursOpen)} horas. Debes cerrarlo.`, 'warning');
+            }
+            updateShiftUI();
+        } else {
+            showShiftClosedUI();
+        }
+    } catch (error) {
+        console.error('❌ Error checkCurrentShift:', error);
+    }
+}
+
+function updateShiftUI() {
+    const shiftBadge = document.getElementById('shift-badge');
+    if (shiftBadge && currentShift) {
+        const hoursOpen = Math.floor((Date.now() - currentShift.openedAt) / (1000 * 60 * 60));
+        shiftBadge.innerHTML = `🟢 Turno abierto por ${currentShift.user} • ${hoursOpen}h • ${formatMoney(currentShift.initialAmount)}`;
+        shiftBadge.style.display = 'block';
+    }
+}
+
+function showShiftClosedUI() {
+    const shiftBadge = document.getElementById('shift-badge');
+    if (shiftBadge) {
+        shiftBadge.innerHTML = `🔴 Sin turno abierto`;
+        shiftBadge.style.display = 'block';
+    }
+}
+
+// ABRIR TURNO
+
+function clearShiftOpenModal() {
+    const userInput = document.getElementById('shift-open-user');
+    const amountInput = document.getElementById('shift-open-amount');
+    const notesInput = document.getElementById('shift-open-notes');
+    if (userInput) userInput.value = '';
+    if (amountInput) amountInput.value = '';
+    if (notesInput) notesInput.value = '';
+}
+
+async function openShift() {
+    try {
+        // Verificar si ya hay turno abierto
+        const shifts = await dbGetAll(STORE_SHIFTS);
+        const openShift = shifts.find(s => s.status === 'open');
+        if (openShift) {
+            showToast('❌ Ya hay un turno abierto. Ciérralo primero.', 'error');
+            return;
+        }
+
+        const user = document.getElementById('shift-open-user').value.trim();
+        const initialAmount = parseFloat(document.getElementById('shift-open-amount').value);
+        const notes = document.getElementById('shift-open-notes').value.trim();
+
+        if (!user) { showToast('❌ Ingresa quién abre el turno', 'error'); return; }
+        if (!initialAmount || initialAmount < 0) { showToast('❌ Monto inicial inválido', 'error'); return; }
+
+        const shift = {
+            user,
+            initialAmount,
+            currentAmount: initialAmount,
+            salesTotal: 0,
+            withdrawalsTotal: 0,
+            depositsTotal: 0,
+            expectedAmount: initialAmount,
+            status: 'open',
+            openedAt: Date.now(),
+            date: new Date().toISOString(),
+            notes,
+            createdAt: new Date().toISOString()
+        };
+
+        const shiftId = await dbAdd(STORE_SHIFTS, shift);
+        currentShift = { ...shift, id: shiftId };
+
+        await addAuditLog('shift_open', `Turno abierto por ${user} con ${formatMoney(initialAmount)}`);
+
+        showToast(`✅ Turno abierto por ${user}`, 'success');
+        closeModal('shift-open-modal');
+        updateShiftUI();
+
+        // Si estamos en el módulo de turnos, recargar
+        if (currentModule === 'turnos') loadShifts();
+    } catch (error) {
+        console.error('❌ Error openShift:', error);
+        showToast('❌ Error al abrir turno', 'error');
+    }
+}
+
+// RETIRAR DE CAJA
+
+async function withdrawFromShift() {
+    try {
+        if (!currentShift) { showToast('❌ No hay turno abierto', 'error'); return; }
+
+        const amount = parseFloat(document.getElementById('shift-withdraw-amount').value);
+        const reason = document.getElementById('shift-withdraw-reason').value;
+        const notes = document.getElementById('shift-withdraw-notes').value.trim();
+
+        if (!amount || amount <= 0) { showToast('❌ Monto inválido', 'error'); return; }
+        if (amount > currentShift.currentAmount) { showToast('❌ No hay suficiente en caja', 'error'); return; }
+
+        currentShift.currentAmount -= amount;
+        currentShift.withdrawalsTotal += amount;
+        currentShift.expectedAmount = currentShift.initialAmount + currentShift.salesTotal - currentShift.withdrawalsTotal + currentShift.depositsTotal;
+
+        await dbPut(STORE_SHIFTS, currentShift);
+
+        await dbAdd(STORE_SHIFT_MOVEMENTS, {
+            shiftId: currentShift.id,
+            type: 'withdrawal',
+            amount,
+            reason,
+            notes,
+            timestamp: Date.now(),
+            date: new Date().toISOString()
+        });
+
+        await addAuditLog('shift_withdraw', `Retiro de ${formatMoney(amount)}: ${reason}`);
+
+        showToast(`💸 Retiro registrado: ${formatMoney(amount)}`, 'warning');
+        closeModal('shift-withdraw-modal');
+        updateShiftUI();
+        if (currentModule === 'turnos') loadShifts();
+    } catch (error) {
+        console.error('❌ Error withdrawFromShift:', error);
+        showToast('❌ Error al retirar', 'error');
+    }
+}
+
+// METER A CAJA
+
+async function depositToShift() {
+    try {
+        if (!currentShift) { showToast('❌ No hay turno abierto', 'error'); return; }
+
+        const amount = parseFloat(document.getElementById('shift-deposit-amount').value);
+        const reason = document.getElementById('shift-deposit-reason').value;
+        const notes = document.getElementById('shift-deposit-notes').value.trim();
+
+        if (!amount || amount <= 0) { showToast('❌ Monto inválido', 'error'); return; }
+
+        currentShift.currentAmount += amount;
+        currentShift.depositsTotal += amount;
+        currentShift.expectedAmount = currentShift.initialAmount + currentShift.salesTotal - currentShift.withdrawalsTotal + currentShift.depositsTotal;
+
+        await dbPut(STORE_SHIFTS, currentShift);
+
+        await dbAdd(STORE_SHIFT_MOVEMENTS, {
+            shiftId: currentShift.id,
+            type: 'deposit',
+            amount,
+            reason,
+            notes,
+            timestamp: Date.now(),
+            date: new Date().toISOString()
+        });
+
+        await addAuditLog('shift_deposit', `Ingreso de ${formatMoney(amount)}: ${reason}`);
+
+        showToast(`💰 Ingreso registrado: ${formatMoney(amount)}`, 'success');
+        closeModal('shift-deposit-modal');
+        updateShiftUI();
+        if (currentModule === 'turnos') loadShifts();
+    } catch (error) {
+        console.error('❌ Error depositToShift:', error);
+        showToast('❌ Error al depositar', 'error');
+    }
+}
+
+// ACTUALIZAR TURNO CON VENTA
+
+async function addSaleToShift(saleTotal, amountPaid, paymentMethod) {
+    try {
+        if (!currentShift) return;
+
+        // Separar por método de pago
+        if (!currentShift.cashTotal) currentShift.cashTotal = 0;
+        if (!currentShift.cardTotal) currentShift.cardTotal = 0;
+        if (!currentShift.transferTotal) currentShift.transferTotal = 0;
+        if (!currentShift.creditTotal) currentShift.creditTotal = 0;
+
+        if (paymentMethod === 'efectivo') {
+            currentShift.cashTotal += (amountPaid || saleTotal);
+            currentShift.currentAmount += (amountPaid || saleTotal);
+        } else if (paymentMethod === 'tarjeta') {
+            currentShift.cardTotal += saleTotal;
+        } else if (paymentMethod === 'transferencia') {
+            currentShift.transferTotal += saleTotal;
+        } else if (paymentMethod === 'fiado') {
+            currentShift.creditTotal += saleTotal;
+        }
+
+        currentShift.salesTotal += saleTotal;
+        currentShift.expectedAmount = currentShift.initialAmount + currentShift.cashTotal - currentShift.withdrawalsTotal + currentShift.depositsTotal;
+
+        await dbPut(STORE_SHIFTS, currentShift);
+        updateShiftUI();
+    } catch (error) {
+        console.error('❌ Error addSaleToShift:', error);
+    }
+}
+
+// CERRAR TURNO
+
+async function closeShift() {
+    try {
+        if (!currentShift) { showToast('❌ No hay turno abierto', 'error'); return; }
+
+        const actualAmount = parseFloat(document.getElementById('shift-close-amount').value);
+        const user = document.getElementById('shift-close-user').value.trim();
+        const notes = document.getElementById('shift-close-notes').value.trim();
+
+        if (!actualAmount || actualAmount < 0) { showToast('❌ Monto real inválido', 'error'); return; }
+        if (!user) { showToast('❌ Ingresa quién cierra el turno', 'error'); return; }
+
+        const difference = actualAmount - currentShift.expectedAmount;
+        const isBalanced = Math.abs(difference) < 1; // Tolerancia de $1
+
+        let discrepancyReason = '';
+        let discrepancyAmount = 0;
+
+        if (!isBalanced) {
+            discrepancyReason = document.getElementById('shift-close-reason').value;
+            discrepancyAmount = Math.abs(difference);
+
+            if (!discrepancyReason) { showToast('❌ Debes explicar por qué no cuadra', 'error'); return; }
+        }
+
+        currentShift.status = 'closed';
+        currentShift.closedBy = user;
+        currentShift.actualAmount = actualAmount;
+        currentShift.difference = difference;
+        currentShift.discrepancyReason = discrepancyReason;
+        currentShift.discrepancyAmount = discrepancyAmount;
+        currentShift.closedAt = Date.now();
+        currentShift.closeNotes = notes;
+
+        await dbPut(STORE_SHIFTS, currentShift);
+
+        await addAuditLog('shift_close', 
+            `Turno cerrado por ${user}. Efectivo: ${formatMoney(currentShift.cashTotal || 0)}, Tarjeta: ${formatMoney(currentShift.cardTotal || 0)}, Transf.: ${formatMoney(currentShift.transferTotal || 0)}, Fiado: ${formatMoney(currentShift.creditTotal || 0)}, Esperado: ${formatMoney(currentShift.expectedAmount)}, Real: ${formatMoney(actualAmount)}, Diferencia: ${formatMoney(difference)}${discrepancyReason ? ' (' + discrepancyReason + ')' : ''}`
+        );
+
+        if (isBalanced) {
+            showToast(`✅ Turno cerrado perfecto. Cuadre exacto`, 'success');
+        } else if (difference > 0) {
+            showToast(`⚠️ Turno cerrado. Sobraron ${formatMoney(difference)}`, 'warning');
+        } else {
+            showToast(`❌ Turno cerrado. Faltaron ${formatMoney(Math.abs(difference))}`, 'error');
+        }
+
+        currentShift = null;
+        closeModal('shift-close-modal');
+        showShiftClosedUI();
+        if (currentModule === 'turnos') loadShifts();
+    } catch (error) {
+        console.error('❌ Error closeShift:', error);
+        showToast('❌ Error al cerrar turno', 'error');
+    }
+}
+
+// CARGAR HISTORIAL DE TURNOS
+
+async function loadShifts() {
+    try {
+        const shifts = await dbGetAll(STORE_SHIFTS);
+        const movements = await dbGetAll(STORE_SHIFT_MOVEMENTS);
+        const list = document.getElementById('shifts-list');
+        if (!list) return;
+
+        shifts.sort((a, b) => b.openedAt - a.openedAt);
+
+        if (shifts.length === 0) {
+            list.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📊</div><p class="empty-state-text">No hay turnos registrados</p><button class="btn-primary" onclick="openModal('shift-open-modal')">+ Abrir Primer Turno</button></div>`;
+            return;
+        }
+
+        list.innerHTML = shifts.map(shift => {
+            const isOpen = shift.status === 'open';
+            const date = new Date(shift.openedAt);
+            const movementsList = movements.filter(m => m.shiftId === shift.id);
+            const withdrawals = movementsList.filter(m => m.type === 'withdrawal');
+            const deposits = movementsList.filter(m => m.type === 'deposit');
+
+            let statusClass = 'paid';
+            let statusText = 'Cuadrado';
+            if (isOpen) { statusClass = 'pending'; statusText = 'Abierto'; }
+            else if (shift.difference > 0) { statusClass = 'warning'; statusText = `Sobró ${formatMoney(shift.difference)}`; }
+            else if (shift.difference < 0) { statusClass = 'overdue'; statusText = `Faltó ${formatMoney(Math.abs(shift.difference))}`; }
+
+            return `
+                <div class="list-item">
+                    <div class="list-content" style="flex:1;">
+                        <div class="list-title">
+                            ${date.toLocaleDateString('es-CL')} ${date.toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'})}
+                            <span class="debt-status ${statusClass}">${statusText}</span>
+                        </div>
+                        <div class="list-subtitle">
+                            Abierto por: <strong>${shift.user}</strong> • 
+                            ${shift.closedBy ? `Cerrado por: <strong>${shift.closedBy}</strong>` : 'Sin cerrar'}
+                        </div>
+                        <div style="margin-top:8px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-size:12px;">
+                            <div style="background:rgba(0,212,170,0.1);padding:8px;border-radius:6px;text-align:center;">
+                                <div style="font-weight:700;color:var(--primary);">${formatMoney(shift.initialAmount)}</div>
+                                <div style="color:rgba(255,255,255,0.5);">Inicial</div>
+                            </div>
+                            <div style="background:rgba(0,212,170,0.1);padding:8px;border-radius:6px;text-align:center;">
+                                <div style="font-weight:700;color:var(--primary);">${formatMoney(shift.salesTotal)}</div>
+                                <div style="color:rgba(255,255,255,0.5);">Ventas</div>
+                            </div>
+                            <div style="background:rgba(231,76,60,0.1);padding:8px;border-radius:6px;text-align:center;">
+                                <div style="font-weight:700;color:#e74c3c;">${formatMoney(shift.withdrawalsTotal)}</div>
+                                <div style="color:rgba(255,255,255,0.5);">Retiros</div>
+                            </div>
+                        </div>
+                        ${shift.depositsTotal > 0 ? `<div style="margin-top:4px;font-size:12px;color:var(--primary);">💰 Ingresos extras: ${formatMoney(shift.depositsTotal)}</div>` : ''}
+                        ${!isOpen ? `<div style="margin-top:6px;font-size:13px;">
+                            Esperado: ${formatMoney(shift.expectedAmount)} • Real: ${formatMoney(shift.actualAmount)}
+                            ${shift.discrepancyReason ? `<div style="color:#e74c3c;margin-top:2px;">📝 ${shift.discrepancyReason}</div>` : ''}
+                        </div>` : ''}
+                    </div>
+                </div>`;
+        }).join('');
+    } catch (error) {
+        console.error('❌ Error loadShifts:', error);
+    }
+}
+
+// Actualizar modal de cierre según monto ingresado
+
+function updateClosePreview() {
+    try {
+        if (!currentShift) return;
+        const actualAmount = parseFloat(document.getElementById('shift-close-amount').value) || 0;
+        const difference = actualAmount - currentShift.expectedAmount;
+        const preview = document.getElementById('shift-close-preview');
+        const reasonDiv = document.getElementById('shift-close-reason-div');
+
+        if (!preview) return;
+
+        if (difference === 0) {
+            preview.innerHTML = `<div style="color:var(--primary);font-weight:700;font-size:18px;">✅ Cuadre perfecto</div>`;
+            if (reasonDiv) reasonDiv.style.display = 'none';
+        } else if (difference > 0) {
+            preview.innerHTML = `<div style="color:var(--accent);font-weight:700;font-size:18px;">⚠️ Sobran ${formatMoney(difference)}</div>`;
+            if (reasonDiv) reasonDiv.style.display = 'block';
+        } else {
+            preview.innerHTML = `<div style="color:#e74c3c;font-weight:700;font-size:18px;">❌ Faltan ${formatMoney(Math.abs(difference))}</div>`;
+            if (reasonDiv) reasonDiv.style.display = 'block';
+        }
+    } catch (error) {
+        console.error('❌ Error updateClosePreview:', error);
+    }
+}
+
+
+// Preparar modal de cierre con datos del turno actual
+
+async function prepareCloseShift() {
+    try {
+        if (!currentShift) {
+            showToast('❌ No hay turno abierto para cerrar', 'error');
+            return;
+        }
+
+        // Actualizar datos en el modal
+        const expectedEl = document.getElementById('shift-close-expected');
+        const salesEl = document.getElementById('shift-close-sales');
+        const withdrawalsEl = document.getElementById('shift-close-withdrawals');
+        const depositsEl = document.getElementById('shift-close-deposits');
+        const amountInput = document.getElementById('shift-close-amount');
+        const userInput = document.getElementById('shift-close-user');
+
+        if (expectedEl) expectedEl.textContent = formatMoney(currentShift.expectedAmount);
+        if (salesEl) salesEl.textContent = formatMoney(currentShift.salesTotal);
+        if (withdrawalsEl) withdrawalsEl.textContent = formatMoney(currentShift.withdrawalsTotal);
+        if (depositsEl) depositsEl.textContent = formatMoney(currentShift.depositsTotal);
+        if (amountInput) amountInput.value = '';
+        if (userInput) userInput.value = '';
+
+        const preview = document.getElementById('shift-close-preview');
+        if (preview) preview.innerHTML = '<div style="color:rgba(255,255,255,0.5);">Ingresa el monto real para ver el cuadre</div>';
+
+        const reasonDiv = document.getElementById('shift-close-reason-div');
+        if (reasonDiv) reasonDiv.style.display = 'none';
+
+        openModal('shift-close-modal');
+    } catch (error) {
+        console.error('❌ Error prepareCloseShift:', error);
+        showToast('❌ Error al preparar cierre', 'error');
+    }
+}
+
+async function updateShiftStats() {
+    try {
+        if (!currentShift) {
+            const els = ['shift-today-sales', 'shift-today-withdrawals', 'shift-today-deposits', 'shift-current-balance'];
+            els.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = '$0';
+            });
+            return;
+        }
+        const movements = await dbGetAll(STORE_SHIFT_MOVEMENTS);
+        const todayMovements = movements.filter(m => m.shiftId === currentShift.id);
+        const todayWithdrawals = todayMovements.filter(m => m.type === 'withdrawal').reduce((sum, m) => sum + m.amount, 0);
+        const todayDeposits = todayMovements.filter(m => m.type === 'deposit').reduce((sum, m) => sum + m.amount, 0);
+        const todaySales = currentShift.salesTotal || 0;
+        const currentBalance = currentShift.currentAmount || 0;
+
+        const salesEl = document.getElementById('shift-today-sales');
+        const withEl = document.getElementById('shift-today-withdrawals');
+        const depEl = document.getElementById('shift-today-deposits');
+        const balEl = document.getElementById('shift-current-balance');
+
+        if (salesEl) salesEl.textContent = formatMoney(todaySales);
+        if (withEl) withEl.textContent = formatMoney(todayWithdrawals);
+        if (depEl) depEl.textContent = formatMoney(todayDeposits);
+        if (balEl) balEl.textContent = formatMoney(currentBalance);
+    } catch (error) {
+        console.error('❌ Error updateShiftStats:', error);
+    }
+}
+
+
 console.log('✅ Colibrí Boba Tea v4.1 cargado completamente');
+
+// ============== FUNCIONES DE AUDITORÍA Y ROBUSTEZ ==============
+async function deleteSale(id) {
+    showConfirm('¿Eliminar esta venta? Se revertirá el stock y bodega.', async () => {
+        try {
+            const sale = await dbGet(STORE_SALES, id);
+            if (!sale) { showToast('❌ Venta no encontrada', 'error'); return; }
+
+            // 🆕 REVERSIÓN DE BODEGA (recetas)
+            const recipes = await dbGetAll(STORE_RECIPES);
+            const ingredients = await dbGetAll(STORE_INGREDIENTS);
+            for (const item of sale.items) {
+                if (item.productId) {
+                    const recipe = recipes.find(r => r.productId === item.productId);
+                    if (recipe && recipe.items) {
+                        for (const recipeItem of recipe.items) {
+                            const ingredient = ingredients.find(i => i.id === recipeItem.ingredientId);
+                            if (ingredient) {
+                                ingredient.stock += (recipeItem.amount * item.qty);
+                                await dbPut(STORE_INGREDIENTS, ingredient);
+                            }
+                        }
+                    }
+                }
+            }
+
+            for (const item of sale.items) {
+                if (item.productId) {
+                    const product = await dbGet(STORE_PRODUCTS, item.productId);
+                    if (product) { product.stock += item.qty; await dbPut(STORE_PRODUCTS, product); }
+                }
+            }
+            if (sale.debtId) {
+                const payments = await dbGetAll(STORE_PAYMENTS);
+                for (const p of payments.filter(p => p.debtId === sale.debtId)) await dbDelete(STORE_PAYMENTS, p.id);
+                await dbDelete(STORE_DEBTS, sale.debtId);
+                if (sale.clientId) {
+                    const client = await dbGet(STORE_CLIENTS, sale.clientId);
+                    if (client) { client.totalDebt = Math.max(0, (client.totalDebt || 0) - sale.total); await dbPut(STORE_CLIENTS, client); }
+                }
+            }
+            if (currentShift && sale.paymentMethod === 'efectivo') {
+                currentShift.cashTotal = Math.max(0, (currentShift.cashTotal || 0) - sale.amountPaid);
+                currentShift.currentAmount = Math.max(0, currentShift.currentAmount - sale.amountPaid);
+                currentShift.salesTotal = Math.max(0, currentShift.salesTotal - sale.total);
+                currentShift.expectedAmount = currentShift.initialAmount + currentShift.cashTotal - currentShift.withdrawalsTotal + currentShift.depositsTotal;
+                await dbPut(STORE_SHIFTS, currentShift);
+                updateShiftUI();
+                if (currentModule === 'turnos') updateShiftStats();
+            }
+            await dbDelete(STORE_SALES, id);
+            showToast('🗑️ Venta eliminada y stock revertido', 'success');
+            loadSales(salesPage);
+            if (currentModule === 'productos') loadProducts();
+            if (currentModule === 'inventario') loadInventory();
+            if (currentModule === 'deudas') loadDebts();
+            if (currentModule === 'turnos') { loadShifts(); updateShiftStats(); }
+        } catch (error) {
+            console.error('❌ Error deleteSale:', error);
+            showToast('❌ Error al eliminar venta', 'error');
+        }
+    });
+}
+
+async function addAuditLog(action, details) {
+    const log = { action, details, timestamp: Date.now(), date: new Date().toISOString(), user: 'admin', module: currentModule };
+    const logs = JSON.parse(localStorage.getItem('colibri_audit_logs') || '[]');
+    logs.push(log);
+    if (logs.length > 1000) logs.shift();
+    localStorage.setItem('colibri_audit_logs', JSON.stringify(logs));
+}
+
+function viewAuditLogs() {
+    const logs = JSON.parse(localStorage.getItem('colibri_audit_logs') || '[]');
+    if (logs.length === 0) { showToast('ℹ️ No hay logs de auditoría', 'info'); return; }
+    const recent = logs.slice(-50).reverse();
+    let html = '<h3>📋 Logs de Auditoría (últimos 50)</h3><div style="max-height:400px;overflow-y:auto;">';
+    recent.forEach(log => {
+        const date = new Date(log.timestamp);
+        html += `<div style="padding:8px;border-bottom:1px solid rgba(255,255,255,0.1);font-size:13px;"><strong>${date.toLocaleTimeString('es-CL')}</strong> - <span style="color:var(--primary);">${log.action}</span><div style="color:rgba(255,255,255,0.6);margin-top:2px;">${log.details || ''}</div></div>`;
+    });
+    html += '</div>';
+    const modal = document.createElement('div');
+    modal.className = 'modal active';
+    modal.innerHTML = `<div class="modal-content" style="max-width:600px;"><div class="modal-header"><h3>📋 Auditoría</h3><button class="close-modal" onclick="this.closest('.modal').remove()">×</button></div><div class="modal-body">${html}</div></div>`;
+    document.body.appendChild(modal);
+}
+
+async function exportToCSV() {
+    try {
+        const products = await dbGetAll(STORE_PRODUCTS);
+        let csv = 'Nombre,Categoría,Precio,Costo,Stock
+';
+        products.forEach(p => { csv += `"${p.name}","${p.category}",${p.price},${p.cost},${p.stock}
+`; });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `colibri_productos_${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('📊 CSV exportado', 'success');
+        await addAuditLog('export_csv', 'Exportación a CSV');
+    } catch (error) {
+        console.error('❌ Error exportando CSV:', error);
+        showToast('❌ Error al exportar CSV', 'error');
+    }
+}
+
+async function restoreFromBackup() {
+    const backup = localStorage.getItem('colibri_backup_auto');
+    if (!backup) { showToast('❌ No hay backup disponible', 'error'); return false; }
+    try {
+        const data = JSON.parse(backup);
+        for (const [store, items] of Object.entries(data)) {
+            if (Array.isArray(items)) { for (const item of items) { await dbAdd(store, item); } }
+        }
+        showToast('✅ Backup restaurado', 'success');
+        loadModule(currentModule);
+        return true;
+    } catch (error) {
+        console.error('❌ Error restaurando backup:', error);
+        showToast('❌ Error al restaurar backup', 'error');
+        return false;
+    }
+}
+
+async function createBackup() {
+    const data = {
+        products: await dbGetAll(STORE_PRODUCTS), sales: await dbGetAll(STORE_SALES),
+        clients: await dbGetAll(STORE_CLIENTS), debts: await dbGetAll(STORE_DEBTS),
+        payments: await dbGetAll(STORE_PAYMENTS), ingredients: await dbGetAll(STORE_INGREDIENTS),
+        recipes: await dbGetAll(STORE_RECIPES), purchases: await dbGetAll(STORE_PURCHASES),
+        waste: await dbGetAll(STORE_WASTE), suppliers: await dbGetAll(STORE_SUPPLIERS),
+        batches: await dbGetAll(STORE_BATCHES), shifts: await dbGetAll(STORE_SHIFTS),
+        shiftMovements: await dbGetAll(STORE_SHIFT_MOVEMENTS), timestamp: Date.now()
+    };
+    localStorage.setItem('colibri_backup_auto', JSON.stringify(data));
+    return data;
+}
+
+async function verifyDatabaseIntegrity() {
+    try {
+        const issues = [];
+        const products = await dbGetAll(STORE_PRODUCTS);
+        const recipes = await dbGetAll(STORE_RECIPES);
+        const productIds = products.map(p => p.id);
+        for (const recipe of recipes) {
+            if (!productIds.includes(recipe.productId)) { issues.push(`Receta "${recipe.name}" sin producto asociado`); }
+        }
+        const ingredients = await dbGetAll(STORE_INGREDIENTS);
+        for (const ing of ingredients) {
+            if (ing.stock < 0) { issues.push(`Ingrediente "${ing.name}" con stock negativo`); ing.stock = 0; await dbPut(STORE_INGREDIENTS, ing); }
+        }
+        if (issues.length > 0) { console.warn('⚠️ Problemas:', issues); showToast(`⚠️ ${issues.length} problemas corregidos`, 'warning'); }
+        return issues;
+    } catch (error) {
+        console.error('❌ Error verificando integridad:', error);
+        return [];
+    }
+}
+
+// Backup automático cada 5 minutos
+setInterval(() => createBackup(), 5 * 60 * 1000);
+
+// Verificar integridad al iniciar
+setTimeout(() => verifyDatabaseIntegrity(), 3000);
